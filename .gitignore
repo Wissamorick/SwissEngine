@@ -1,0 +1,64 @@
+```gitignore
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+swissengine_env/
+
+# ===========================
+# Jupyter
+# ===========================
+.ipynb_checkpoints/
+
+# Notebooks à ne jamais versionner
+PDM.ipynb
+TestSwissPheng.ipynb
+functions.py
+
+# ===========================
+# VS Code
+# ===========================
+.vscode/
+
+# ===========================
+# Cursor
+# ===========================
+.cursor/
+
+# ===========================
+# Logs
+# ===========================
+*.log
+
+# ===========================
+# Environment variables
+# ===========================
+.env
+.env.*
+
+# ===========================
+# Frontend (React/Vite)
+# ===========================
+frontend/node_modules/
+frontend/dist/
+
+# ===========================
+# macOS
+# ===========================
+.DS_Store
+
+# ===========================
+# Docker
+# ===========================
+*.pid
+```

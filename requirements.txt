@@ -1,0 +1,12 @@
+# Core engine (pairing library)
+numpy
+networkx
+
+# Notebooks / analysis (PDM.ipynb, TestSwissPheng.ipynb, functions.py)
+matplotlib
+seaborn
+pandas
+scipy
+scikit-learn
+tensorflow
+jupyter
