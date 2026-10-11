@@ -89,10 +89,58 @@ In the web interface:
 7. check the standings and generate the next round;
 8. repeat until the last round.
 
-Available systems: Dutch, Burstein, Monrad, Swiss random, Mixed, Random and
-round-robin.
+Available systems: Swiss Dutch, Swiss Burstein, Monrad, Swiss Random,
+Swiss Random 2, Mixte (Swiss Dutch then Swiss Burstein), random and
+round-robin. Points per round, Beta, bye value and seeding are under
+**Paramètres avancés**.
 
-## Current limitation
+## FAQ & documentation
 
-Tournaments are kept in memory only. Stopping or restarting the API therefore
-clears any ongoing tournament. A database can be added in a later step.
+The **FAQ & documentation** tab (top of the page) explains how to use the
+tool, how to choose a tournament system, how each system and the pairing
+algorithm work, and what every option does, in plain French for non
+specialists. It links to the study `Pheng_New_Pairing_System.pdf`, served
+from `frontend/public/`.
+
+## Saving and reopening tournaments
+
+Click **Enregistrer…** and choose a parent folder and a folder name. From then
+on, every change (players, pairings, results) is saved automatically in that
+folder:
+
+```text
+<tournament folder>/
+    tournoi.json                      full state, used to reopen the tournament
+    tournoi.precedent.json            previous version (safety net)
+    joueurs.csv
+    rondes/
+        ronde_01_appariements.html    printable pairings / results
+        ronde_01_appariements.csv
+        ronde_01_grille_americaine.html   printable crosstable after round 1
+        ronde_01_grille_americaine.csv
+        ...
+    archives/<date>/                  files of rounds cancelled by a rollback
+```
+
+`tournoi.json` stores the configuration, the players (name, Elo) and, for each
+round, the pairings (table, White, Black) with their result. Replaying these
+rounds rebuilds the exact state of the tournament (scores, colors, opponents
+already met, tiebreaks), without re-running the pairing algorithm.
+
+- **Ouvrir un tournoi**: pick the tournament folder (recent tournaments are
+  listed on the home page), or import a `.json` file.
+- **Télécharger (.json)**: download the current state as a single file.
+- **Rondes jouées → Revenir à la fin de cette ronde**: go back to an earlier
+  round (the later rounds are cancelled; their files are moved to `archives/`).
+- **Annuler les appariements**: cancel the pairings of the current round and
+  generate them again.
+- **Corriger la ronde N / Modifier les résultats**: fix a wrong result of an
+  already completed round (typo...). If later rounds exist, choose to keep
+  them as they are (only scores change) or to cancel them and pair again.
+- **Afficher club / équipe**: optional club or team for each player, shown in
+  the standings, the crosstable and the exported files.
+- The CSV files use `;` and UTF-8 with BOM so they open directly in Excel or
+  LibreOffice Calc.
+
+Tournaments that have not been saved to a folder are kept in memory only and
+are lost when the API stops.

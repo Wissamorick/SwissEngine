@@ -26,6 +26,14 @@ TestSwissPheng.ipynb
 functions.py
 
 # ===========================
+# LibreOffice / OpenOffice
+# ===========================
+Todo_SwissEngine.ods
+*.ods
+# Fichiers de verrouillage temporaires (créés quand un document est ouvert)
+.~lock.*#
+
+# ===========================
 # VS Code
 # ===========================
 .vscode/

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tournoi — Ronde 3 — résultats</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: system-ui, 'Segoe UI', Roboto, sans-serif; color: #111; margin: 24px; }
+header { margin-bottom: 14px; }
+h1 { font-size: 20px; margin: 0 0 2px; }
+h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; color: #333; }
+.meta { color: #666; font-size: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border: 1px solid #c9ced6; padding: 5px 7px; text-align: left; vertical-align: middle; }
+thead th { background: #1f2937; color: #fff; font-weight: 600; text-align: center; border-color: #1f2937; }
+tbody tr:nth-child(even) td { background: #f5f7fa; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.center, th.center { text-align: center; }
+td.rank { text-align: center; font-weight: 700; width: 36px; }
+td.name { font-weight: 700; }
+td.club, td.elo { color: #555; }
+td.club { font-size: 12px; }
+td.elo { text-align: center; font-variant-numeric: tabular-nums; }
+td.pts { text-align: center; font-weight: 800; font-size: 14px; background: #e8eefc !important; }
+td.tb { text-align: center; color: #444; font-variant-numeric: tabular-nums; }
+td.res { font-weight: 700; text-align: center; white-space: nowrap; }
+td.rc { text-align: center; white-space: nowrap; padding: 4px 3px; font-variant-numeric: tabular-nums; }
+td.rc span { display: inline-block; }
+td.rc .sym { width: 0.9em; text-align: center; font-weight: 800; }
+td.rc .opp { min-width: 1.6em; text-align: right; }
+td.rc .col { width: 1.1em; text-align: left; font-size: 11px; color: #666; padding-left: 1px; }
+td.rc.win .sym { color: #1b6e2a; }
+td.rc.loss .sym { color: #b42318; }
+td.rc.draw .sym { color: #555; }
+td.rc.bye { color: #777; font-size: 12px; letter-spacing: 0.04em; }
+.legend { margin-top: 10px; font-size: 11px; color: #555; }
+.toolbar { margin-bottom: 16px; }
+.toolbar button { padding: 6px 12px; font-size: 13px; cursor: pointer; }
+@media print {
+  body { margin: 0; }
+  .toolbar { display: none; }
+  @page { size: A4; margin: 10mm; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.pts, tbody tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">Imprimer</button></div>
+<header>
+<h1>Tournoi</h1>
+<h2>Ronde 3 — résultats</h2>
+<div class="meta">Mixte (Swiss Dutch puis Swiss Burstein) · 7 joueurs · 3 rondes</div>
+</header>
+<table><thead><tr><th>Table</th><th>Pts</th><th>Blancs</th><th>Elo</th><th>Résultat</th><th>Elo</th><th>Noirs</th><th>Pts</th></tr></thead><tbody><tr><td class='rank'>1</td><td class='center'>2</td><td class='name'>Magnum Carlos</td><td class='elo'>2800</td><td class='res'>½-½</td><td class='elo'>2700</td><td class='name'>Maxime Vafairepipi-Lapagrave</td><td class='center'>2</td></tr><tr><td class='rank'>2</td><td class='center'>1</td><td class='name'>Wissamorick</td><td class='elo'>2000</td><td class='res'>1-0</td><td class='elo'>1100</td><td class='name'>Quemira Wowo</td><td class='center'>1</td></tr><tr><td class='rank'>3</td><td class='center'>1</td><td class='name'>Michel Olise</td><td class='elo'>1600</td><td class='res'>1-0</td><td class='elo'>1000</td><td class='name'>Kyky Debondy</td><td class='center'>½</td></tr><tr><td class='rank'>4</td><td class='center'>½</td><td class='name'>El Bicho</td><td class='elo'>1100</td><td class='res'>EXEMPT</td><td></td><td></td><td></td></tr></tbody></table><p class='legend'>Pts = points avant la ronde.</p>
+
+</body>
+</html>

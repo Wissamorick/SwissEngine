@@ -9,6 +9,11 @@ class Pairing:
     white_index: int
     black_index: int
     is_bye: bool = False
+    # Snapshot taken when the round is paired (points *before* the round)
+    white_elo: int = 0
+    black_elo: int = 0
+    white_pts: float = 0.0
+    black_pts: float = 0.0
 
 
 @dataclass

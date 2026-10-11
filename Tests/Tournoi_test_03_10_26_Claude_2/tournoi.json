@@ -1,0 +1,142 @@
+{
+  "format": "swissengine-tournament",
+  "version": 1,
+  "name": "Tournoi",
+  "config": {
+    "system": "mixed",
+    "rounds": 3,
+    "points": [],
+    "beta": 2,
+    "bye_value": 1.0,
+    "seeding": true
+  },
+  "options": {
+    "show_club": true
+  },
+  "players": [
+    {
+      "name": "Magnum Carlos",
+      "elo": 2800
+    },
+    {
+      "name": "Maxime Vafairepipi-Lapagrave",
+      "elo": 2700,
+      "club": "Asnières"
+    },
+    {
+      "name": "Wissamorick",
+      "elo": 2000,
+      "club": "La Dame Blanche"
+    },
+    {
+      "name": "Michel Olise",
+      "elo": 1600,
+      "club": "Crystal Palace"
+    },
+    {
+      "name": "El Bicho",
+      "elo": 1100,
+      "club": "Sporting Portugal SC"
+    },
+    {
+      "name": "Quemira Wowo",
+      "elo": 1100,
+      "club": "Rosario Central"
+    },
+    {
+      "name": "Kyky Debondy",
+      "elo": 1000,
+      "club": "AS Monaco"
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "El Bicho",
+          "black": "Magnum Carlos",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Quemira Wowo",
+          "black": "Maxime Vafairepipi-Lapagrave",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Kyky Debondy",
+          "black": "Wissamorick",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Michel Olise",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Magnum Carlos",
+          "black": "Wissamorick",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Maxime Vafairepipi-Lapagrave",
+          "black": "Michel Olise",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "El Bicho",
+          "black": "Kyky Debondy",
+          "white_score": 0.5
+        },
+        {
+          "table": 4,
+          "white": "Quemira Wowo",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Magnum Carlos",
+          "black": "Maxime Vafairepipi-Lapagrave",
+          "white_score": 0.5
+        },
+        {
+          "table": 2,
+          "white": "Wissamorick",
+          "black": "Quemira Wowo",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Michel Olise",
+          "black": "Kyky Debondy",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "El Bicho",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    }
+  ],
+  "saved_at": "2026-10-04T23:27:46"
+}

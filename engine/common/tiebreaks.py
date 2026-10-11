@@ -14,11 +14,11 @@ def Sonneborn_Berger(M) -> list[float]:
 
     n = len(M)
     L = [0 for i in range(n)]
+    totals = np.sum(M, axis=1)  # score of each player, computed once
 
     for i in range(n):
         for j in range(n):
-            score_of_opponent = np.sum(M[j])
-            L[i] += M[i][j] * score_of_opponent
+            L[i] += M[i][j] * totals[j]
 
     return L
 
@@ -36,13 +36,17 @@ def Bucholz(M, cut=0) -> list[float]:
 
     n = len(M)
     L = [0 for i in range(n)]
+    totals = np.sum(M, axis=1)  # score of each player, computed once
 
-    opponents_points = []
     for i in range(n):
+        # Reset for each player (previously shared across players, which made
+        # the Cut values wrong: the lowest scores of *other* players' opponents
+        # were subtracted).
+        opponents_points = []
         for j in range(n):
             # Compute standard Bucholz
             if M[i][j] + M[j][i] != 0:  # If i and j played each other
-                score_of_opponent = np.sum(M[j])
+                score_of_opponent = totals[j]
                 opponents_points.append(score_of_opponent)
                 L[i] += score_of_opponent
 

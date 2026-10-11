@@ -1,0 +1,98 @@
+{
+  "format": "swissengine-tournament",
+  "version": 1,
+  "name": "Tournoi_test_14_10_26_Claude_1",
+  "config": {
+    "system": "mixed",
+    "rounds": 5,
+    "points": [
+      2.0
+    ],
+    "beta": 2,
+    "bye_value": 0.5,
+    "seeding": true
+  },
+  "options": {
+    "show_club": false
+  },
+  "players": [
+    {
+      "name": "A",
+      "elo": 1500
+    },
+    {
+      "name": "b",
+      "elo": 1500
+    },
+    {
+      "name": "C",
+      "elo": 1500
+    },
+    {
+      "name": "D",
+      "elo": 1500
+    },
+    {
+      "name": "e",
+      "elo": 1500
+    },
+    {
+      "name": "f",
+      "elo": 1500
+    },
+    {
+      "name": "g",
+      "elo": 1500
+    },
+    {
+      "name": "h",
+      "elo": 1500
+    },
+    {
+      "name": "i",
+      "elo": 1500
+    },
+    {
+      "name": "j",
+      "elo": 1500
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "f",
+          "black": "A",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "g",
+          "black": "b",
+          "white_score": 0.5
+        },
+        {
+          "table": 3,
+          "white": "C",
+          "black": "h",
+          "white_score": 0.5
+        },
+        {
+          "table": 4,
+          "white": "i",
+          "black": "D",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "j",
+          "black": "e",
+          "white_score": 0.0
+        }
+      ]
+    }
+  ],
+  "saved_at": "2026-10-04T18:02:39"
+}
