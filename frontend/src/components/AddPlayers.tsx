@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { PlayerInput } from '../types'
+import { Icon } from './Icon'
+import { EmptyState } from './Feedback'
 
 interface Props {
   /** players already registered on the server */
@@ -9,6 +11,7 @@ interface Props {
   /** the tournament has started: no more players can be added */
   locked: boolean
   showClub: boolean
+  busy?: boolean
   onToggleClub: (show: boolean) => void
   /** club of a registered player (can be changed at any time) */
   onSetClub: (name: string, club: string) => void
@@ -22,8 +25,9 @@ function ClubInput({ value, onSave }: { value: string; onSave: (club: string) =>
   return (
     <input
       type="text"
-      className="club-input"
+      className="club-input input-sm"
       placeholder="Club / équipe"
+      aria-label="Club / équipe"
       value={text}
       onChange={(e) => setText(e.target.value)}
       onBlur={() => text.trim() !== value && onSave(text.trim())}
@@ -37,6 +41,7 @@ export function AddPlayers({
   pending,
   locked,
   showClub,
+  busy = false,
   onToggleClub,
   onSetClub,
   onAdd,
@@ -56,92 +61,130 @@ export function AddPlayers({
   }
 
   const clubToggle = (
-    <label className="checkbox club-toggle">
+    <label className="checkbox switch-label">
       <input type="checkbox" checked={showClub} onChange={(e) => onToggleClub(e.target.checked)} />
       Afficher club / équipe
     </label>
   )
 
-  const registeredList = (
-    <ol className={showClub ? 'player-list with-club' : 'player-list'}>
-      {registered.map((p) => (
-        <li key={`r-${p.name}`}>
-          <span className="player-main">
-            <b>{p.name}</b> <span className="muted">({p.elo})</span>
-          </span>
-          {showClub && (
-            <ClubInput
-              key={p.club ?? ''}
-              value={p.club ?? ''}
-              onSave={(c) => onSetClub(p.name, c)}
-            />
-          )}
-          {!locked && <span className="badge">inscrit</span>}
-        </li>
-      ))}
-      {pending.map((p, i) => (
-        <li key={`p-${p.name}-${i}`} className="pending">
-          <span className="player-main">
-            {p.name} <span className="muted">({p.elo})</span>
-            {showClub && p.club && <span className="muted"> · {p.club}</span>}
-          </span>
-          <button className="link" onClick={() => onRemove(i)}>
-            retirer
-          </button>
-        </li>
-      ))}
-    </ol>
-  )
+  const total = registered.length + pending.length
+
+  const registeredList =
+    total === 0 ? (
+      <EmptyState title="Aucun joueur inscrit">
+        Saisissez le nom et l'Elo de chaque participant (0 si non classé), puis enregistrez la
+        liste.
+      </EmptyState>
+    ) : (
+      <ol className={showClub ? 'player-list with-club' : 'player-list'}>
+        {registered.map((p, i) => (
+          <li key={`r-${p.name}`}>
+            <span className="pl-num">{i + 1}</span>
+            <span className="pl-name">{p.name}</span>
+            <span className="pl-elo">{p.elo}</span>
+            {showClub && (
+              <ClubInput
+                key={p.club ?? ''}
+                value={p.club ?? ''}
+                onSave={(c) => onSetClub(p.name, c)}
+              />
+            )}
+          </li>
+        ))}
+        {pending.map((p, i) => (
+          <li key={`p-${p.name}-${i}`} className="pending">
+            <span className="pl-num">{registered.length + i + 1}</span>
+            <span className="pl-name">
+              {p.name}
+              <span className="badge badge-warn">à enregistrer</span>
+            </span>
+            <span className="pl-elo">{p.elo}</span>
+            {showClub && <span className="pl-club">{p.club ?? ''}</span>}
+            <button
+              className="icon-button"
+              onClick={() => onRemove(i)}
+              aria-label={`Retirer ${p.name}`}
+              title="Retirer"
+            >
+              <Icon name="close" size={14} />
+            </button>
+          </li>
+        ))}
+      </ol>
+    )
 
   if (locked) {
     return (
-      <details className="card">
-        <summary>
-          <h2 className="inline-title">Joueurs ({registered.length})</h2>
+      <details className="card card-players">
+        <summary className="card-head">
+          <h2>
+            <Icon name="chevron-right" className="summary-chevron" />
+            Joueurs
+            <span className="count">{registered.length}</span>
+          </h2>
+          <span className="card-aside">Inscriptions closes</span>
         </summary>
-        <div className="players-head">{clubToggle}</div>
-        {registeredList}
+        <div className="card-body">
+          {clubToggle}
+          {registeredList}
+        </div>
       </details>
     )
   }
 
   return (
-    <div className="card">
-      <div className="players-head">
-        <h2>Joueurs</h2>
+    <section className="card card-players">
+      <header className="card-head">
+        <h2>
+          Joueurs
+          <span className="count">{total}</span>
+        </h2>
         {clubToggle}
-      </div>
+      </header>
 
-      <form className="inline" onSubmit={add}>
-        <input
-          type="text"
-          placeholder="Nom"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        {showClub && (
+      <form className="player-form" onSubmit={add}>
+        <label className="field grow">
+          <span className="field-label">Nom</span>
           <input
             type="text"
-            placeholder="Club / équipe (facultatif)"
-            value={club}
-            onChange={(e) => setClub(e.target.value)}
+            placeholder="Prénom Nom"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
+        </label>
+        {showClub && (
+          <label className="field grow">
+            <span className="field-label">Club / équipe</span>
+            <input
+              type="text"
+              placeholder="facultatif"
+              value={club}
+              onChange={(e) => setClub(e.target.value)}
+            />
+          </label>
         )}
-        <input
-          type="number"
-          placeholder="Elo"
-          className="elo-input"
-          value={elo}
-          onChange={(e) => setElo(Number(e.target.value))}
-        />
-        <button type="submit">Ajouter</button>
+        <label className="field field-elo">
+          <span className="field-label">Elo</span>
+          <input type="number" value={elo} onChange={(e) => setElo(Number(e.target.value))} />
+        </label>
+        <button type="submit" className="secondary" disabled={!name.trim()}>
+          <Icon name="plus" />
+          Ajouter
+        </button>
       </form>
 
       {registeredList}
 
-      <button disabled={pending.length === 0} onClick={onSubmit}>
-        Enregistrer {pending.length} joueur(s)
-      </button>
-    </div>
+      {pending.length > 0 && (
+        <div className="form-foot">
+          <button disabled={busy} onClick={onSubmit}>
+            Enregistrer {pending.length} joueur{pending.length > 1 ? 's' : ''}
+          </button>
+          <span className="hint">
+            Les joueurs ne sont pris en compte qu'une fois enregistrés.
+          </span>
+        </div>
+      )}
+    </section>
   )
 }

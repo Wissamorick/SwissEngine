@@ -1,13 +1,178 @@
-:root {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light;
+/* ==========================================================================
+   Swiss Engine — design foundations
+   --------------------------------------------------------------------------
+   Everything below derives from the logo (logo/Logo.png):
+   - red field #CC0000      → brand signal: current round, active state,
+                              focus, the primary button's offset shadow
+   - black gear             → ink: text, structure, primary actions
+   - white letters          → surfaces
+   - dark-red hard shadow   → elevation is a hard offset, never a blur
+   - flat bars, 45° chamfers → crisp geometry, small radii, no pills
+   Neutrals are warmed very slightly so they sit with the red instead of
+   the usual blue-grey.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/inter-400.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/inter-600.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/inter-700.woff') format('woff');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/inter-display-600.woff') format('woff');
 }
 
-* {
+:root {
+  /* ---- brand (sampled from the logo) */
+  --red: #cc0000;
+  --red-deep: #4a0000;
+  --red-ink: #b30000; /* red text on light surfaces (6.6:1) */
+  --red-tint: #fbeded;
+  --red-line: #ecbcbc;
+
+  /* ---- ink & neutrals */
+  --ink: #141414;
+  --ink-2: #4b4743;
+  --ink-3: #78726b; /* ≥ 4.5:1 on white */
+  --ink-4: #a49e97; /* decorative only (placeholders, rules) */
+  --paper: #f5f4f1;
+  --surface: #ffffff;
+  --surface-2: #faf9f7;
+  --surface-3: #efede9;
+  --line: #e4e1dc;
+  --line-strong: #ccc7c0;
+
+  /* ---- functional */
+  --ok: #1d6b3a;
+  --ok-tint: #eaf3ed;
+  --ok-line: #b9d8c4;
+  --warn: #8a5300;
+  --warn-tint: #fbf2e1;
+  --warn-line: #ebd2a4;
+
+  /* ---- type */
+  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'Consolas', 'SFMono-Regular', monospace;
+  --fs-xs: 0.6875rem; /* 11 — table headers, badges */
+  --fs-sm: 0.8125rem; /* 13 — labels, hints */
+  --fs-md: 0.875rem; /* 14 — body, tables */
+  --fs-lg: 1rem; /* 16 — panel titles */
+  --fs-xl: 1.25rem; /* 20 — page titles (mobile) */
+  --fs-2xl: 1.75rem; /* 28 — page titles */
+
+  /* ---- space (4 px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* ---- shape */
+  --r-1: 2px; /* badges, segments */
+  --r-2: 4px; /* controls, panels */
+  --control-h: 36px;
+  --control-h-sm: 30px;
+
+  /* ---- elevation: hard offsets, as in the logo's letter shadows */
+  --shadow-primary: 3px 3px 0 var(--red);
+  --shadow-float: 6px 6px 0 rgba(20, 20, 20, 0.14);
+
+  --page-max: 1180px;
+  --header-h: 56px;
+
+  color-scheme: light;
+  font-family: var(--font);
+  font-size: 100%;
+  font-feature-settings: 'cv05', 'cv08'; /* l with tail, serifed I: names stay unambiguous */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: calc(var(--header-h) + var(--s-4));
 }
 
 body {
   margin: 0;
-  background: #f6f7f9;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--red-ink);
+}
+
+::selection {
+  background: var(--red);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

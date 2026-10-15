@@ -20,6 +20,9 @@ import type { EditRequest } from './components/RoundHistory'
 import { OpenTournament } from './components/OpenTournament'
 import { FolderPicker } from './components/FolderPicker'
 import { Faq } from './components/Faq'
+import { BrandLockup } from './components/Brand'
+import { Icon } from './components/Icon'
+import { Banner, BusyBar, LongTaskOverlay, useConfirm } from './components/Feedback'
 import './App.css'
 
 type Tab = 'standings' | 'crosstable' | 'rounds'
@@ -54,6 +57,9 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('standings')
   const [dialog, setDialog] = useState<Dialog>(null)
   const [busy, setBusy] = useState(false)
+  // label of a potentially long operation, shown with the animated logo
+  const [longTask, setLongTask] = useState<string | null>(null)
+  const [confirm, confirmDialog] = useConfirm()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null)
@@ -83,9 +89,11 @@ export default function App() {
   }, [load])
 
   // Run an async action and surface any error in the banner.
-  async function run(fn: () => Promise<void>) {
+  // `longLabel`: the operation may take a while (shown if it does).
+  async function run(fn: () => Promise<void>, longLabel?: string) {
     try {
       setBusy(true)
+      setLongTask(longLabel ?? null)
       setError(null)
       setNotice(null)
       await fn()
@@ -93,6 +101,7 @@ export default function App() {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
+      setLongTask(null)
     }
   }
 
@@ -106,7 +115,7 @@ export default function App() {
 
   // ------------------------------------------------------------- actions
   function handleCreate(config: TournamentConfigInput) {
-    run(async () => openStatus(await api.createTournament(config)))
+    run(async () => openStatus(await api.createTournament(config)), 'Création du tournoi…')
   }
 
   function handleOpenFolder(path: string) {
@@ -114,7 +123,7 @@ export default function App() {
       const s = await api.openTournament(path)
       setDialog(null)
       await openStatus(s, `Tournoi « ${s.name} » ouvert (ronde ${s.completed_rounds} terminée).`)
-    })
+    }, 'Ouverture du tournoi…')
   }
 
   function handleImportFile(data: unknown) {
@@ -124,7 +133,7 @@ export default function App() {
         s,
         `Tournoi « ${s.name} » importé. Pensez à l'enregistrer dans un dossier pour activer la sauvegarde automatique.`,
       )
-    })
+    }, 'Import du tournoi…')
   }
 
   function handleSave(directory: string, folderName: string) {
@@ -137,7 +146,17 @@ export default function App() {
         if (
           e instanceof ApiError &&
           e.status === 409 &&
-          window.confirm(`${e.message}\n\nRemplacer le tournoi existant ?`)
+          (await confirm({
+            title: 'Ce dossier existe déjà',
+            message: (
+              <>
+                <p>{e.message}</p>
+                <p>Le tournoi qu'il contient sera remplacé par celui-ci.</p>
+              </>
+            ),
+            confirmLabel: 'Remplacer',
+            danger: true,
+          }))
         ) {
           s = await api.saveTournament(id, directory, folderName, true)
         } else {
@@ -147,12 +166,19 @@ export default function App() {
       setDialog(null)
       await load(id)
       setNotice(`Tournoi enregistré dans ${s.save_dir}. Il sera sauvegardé automatiquement.`)
-    })
+    }, 'Enregistrement…')
   }
 
-  function handleClose() {
+  async function handleClose() {
     if (status && !status.save_dir && status.player_count > 0) {
-      if (!window.confirm("Ce tournoi n'est pas enregistré. Le fermer quand même ?")) return
+      const ok = await confirm({
+        title: 'Fermer sans enregistrer ?',
+        message:
+          "Ce tournoi n'est enregistré dans aucun dossier : il sera perdu à l'arrêt du serveur.",
+        confirmLabel: 'Fermer quand même',
+        danger: true,
+      })
+      if (!ok) return
     }
     setState(null)
     setPendingPlayers([])
@@ -177,7 +203,7 @@ export default function App() {
       await api.generateRound(id)
       setResults({})
       await load(id)
-    })
+    }, 'Calcul des appariements…')
   }
 
   function handleSubmitResults(payload: ResultInput[]) {
@@ -232,15 +258,27 @@ export default function App() {
     setEditRequest({ round, nonce: Date.now() })
   }
 
-  function handleRollback(roundsToKeep: number) {
+  async function handleRollback(roundsToKeep: number) {
     if (!id || !status) return
     const cancelled = status.completed_rounds - roundsToKeep
     const pending = status.awaiting_results ? ' ainsi que les appariements de la ronde en cours' : ''
-    const msg =
+    const ok = await confirm(
       cancelled > 0
-        ? `Revenir à la fin de la ronde ${roundsToKeep} ? Les résultats des ${cancelled} ronde(s) suivante(s)${pending} seront annulés.`
-        : `Annuler les appariements de la ronde ${status.current_round} ? Vous pourrez les générer à nouveau.`
-    if (!window.confirm(msg)) return
+        ? {
+            title: `Revenir à la fin de la ronde ${roundsToKeep} ?`,
+            message: `Les résultats des ${cancelled} ronde(s) suivante(s)${pending} seront annulés.`,
+            confirmLabel: 'Revenir à cette ronde',
+            danger: true,
+          }
+        : {
+            title: `Annuler les appariements de la ronde ${status.current_round} ?`,
+            message: 'Vous pourrez les générer à nouveau.',
+            confirmLabel: 'Annuler les appariements',
+            cancelLabel: 'Conserver',
+            danger: true,
+          },
+    )
+    if (!ok) return
     run(async () => {
       await api.rollback(id, roundsToKeep)
       setResults({})
@@ -262,213 +300,276 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand-nav">
-          <h1>SwissEngine</h1>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <BrandLockup onClick={() => setView('tournament')} />
           <nav className="main-nav" aria-label="Navigation principale">
             <button
-              className={view === 'tournament' ? 'nav-tab active' : 'nav-tab'}
+              className="nav-tab"
+              aria-current={view === 'tournament' ? 'page' : undefined}
               onClick={() => setView('tournament')}
             >
               Tournoi
             </button>
             <button
-              className={view === 'faq' ? 'nav-tab active' : 'nav-tab'}
+              className="nav-tab"
+              aria-current={view === 'faq' ? 'page' : undefined}
               onClick={() => openFaq()}
             >
-              FAQ &amp; documentation
+              <span className="label-long">FAQ &amp; documentation</span>
+              <span className="label-short">Aide</span>
             </button>
           </nav>
         </div>
-        {status && view === 'tournament' && (
-          <div className="topbar-actions">
-            <button className="secondary" onClick={() => setDialog('save')} disabled={busy}>
-              {status.save_dir ? 'Enregistrer sous…' : 'Enregistrer…'}
-            </button>
-            <button className="secondary" onClick={() => openPrint(api.urls.exportJson(status.id))}>
-              Télécharger (.json)
-            </button>
-            <button className="secondary" onClick={handleClose}>
-              Fermer
-            </button>
-          </div>
-        )}
+        <BusyBar active={busy} />
       </header>
 
-      {error && (
-        <div className="error" role="alert">
-          {error}
-          <button className="link close" onClick={() => setError(null)} aria-label="Masquer le message">
-            ×
-          </button>
-        </div>
-      )}
-      {notice && (
-        <div className="notice">
-          {notice}
-          <button className="link close" onClick={() => setNotice(null)} aria-label="Masquer le message">
-            ×
-          </button>
-        </div>
-      )}
-
-      {view === 'faq' && <Faq anchor={faqAnchor} />}
-
-      {view === 'tournament' && !status && (
-        <div className="home-grid">
-          <CreateTournament
-            disabled={busy}
-            onCreate={handleCreate}
-            onHelp={(anchor) => openFaq(anchor)}
-          />
-          <OpenTournament
-            onOpenFolder={handleOpenFolder}
-            onBrowse={() => setDialog('open')}
-            onImportFile={handleImportFile}
-            onError={setError}
-          />
-        </div>
-      )}
-
-      {view === 'tournament' && status && state && (
-        <>
-          <section className="status">
-            <div>
-              <h2 className="tournament-name">{status.name}</h2>
-              <div className="muted">
-                {SYSTEM_LABELS[status.system] ?? status.system} · {status.player_count} joueurs ·{' '}
-                {status.finished
-                  ? `terminé (${status.total_rounds} rondes)`
-                  : `ronde ${roundLabel}/${status.total_rounds}`}
-                {status.awaiting_results && ' · en attente des résultats'}
-              </div>
-            </div>
-            <div className={status.save_dir ? 'save-state ok' : 'save-state warn'}>
-              {status.save_error ? (
-                <span className="danger-text">{status.save_error}</span>
-              ) : status.save_dir ? (
-                <>
-                  Sauvegarde automatique · {fmtDate(status.last_saved)}
-                  <br />
-                  <code title={status.save_dir}>{status.save_dir}</code>
-                </>
-              ) : (
-                <>
-                  Non enregistré —{' '}
-                  <button className="link" onClick={() => setDialog('save')}>
-                    choisir un dossier
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
-
-          <AddPlayers
-            registered={state.players}
-            pending={pendingPlayers}
-            locked={status.started}
-            showClub={status.show_club}
-            onToggleClub={handleToggleClub}
-            onSetClub={handleSetClub}
-            onAdd={(p) => setPendingPlayers((prev) => [...prev, p])}
-            onRemove={(i) => setPendingPlayers((prev) => prev.filter((_, idx) => idx !== i))}
-            onSubmit={handleSubmitPlayers}
-          />
-
-          {!status.finished && (
-            <div className="card">
-              <h2>{pendingRound ? `Ronde ${pendingRound.round} — appariements` : 'Rondes'}</h2>
-              {pendingRound ? (
-                <Pairings
-                  round={pendingRound}
-                  results={results}
-                  editable
-                  onSetResult={(table, score) => setResults((prev) => ({ ...prev, [table]: score }))}
-                  onSubmit={handleSubmitResults}
-                  onPrint={() => openPrint(api.urls.printPairings(status.id, pendingRound.round))}
-                  onCancelRound={() => handleRollback(status.completed_rounds)}
-                  extraActions={
-                    pendingRound.round > 1 && (
-                      <button
-                        className="secondary"
-                        onClick={() => requestCorrection(pendingRound.round - 1)}
-                      >
-                        Corriger la ronde {pendingRound.round - 1}
-                      </button>
-                    )
-                  }
-                />
-              ) : (
-                <div className="actions">
-                  <button onClick={handleGenerateRound} disabled={!canGenerate || busy}>
-                    Générer la ronde {roundLabel}
-                  </button>
-                  {status.completed_rounds > 0 && (
-                    <button
-                      className="secondary"
-                      onClick={() => requestCorrection(status.completed_rounds)}
-                    >
-                      Corriger la ronde {status.completed_rounds}
-                    </button>
-                  )}
-                </div>
-              )}
-              {!pendingRound && status.player_count < 2 && (
-                <p className="hint">Inscrivez au moins 2 joueurs.</p>
-              )}
-            </div>
-          )}
-
-          <div className="card">
-            <div className="tabs" role="tablist">
-              <button
-                role="tab"
-                className={tab === 'standings' ? 'tab active' : 'tab'}
-                onClick={() => setTab('standings')}
-              >
-                Classement
-              </button>
-              <button
-                role="tab"
-                className={tab === 'crosstable' ? 'tab active' : 'tab'}
-                onClick={() => setTab('crosstable')}
-              >
-                Grille américaine
-              </button>
-              <button
-                role="tab"
-                className={tab === 'rounds' ? 'tab active' : 'tab'}
-                onClick={() => setTab('rounds')}
-              >
-                Rondes jouées ({status.completed_rounds})
-              </button>
-            </div>
-
-            {tab === 'standings' && (
-              <Standings standings={state.standings} showClub={status.show_club} />
+      <main className="page">
+        {(error || notice) && (
+          <div className="banners">
+            {error && (
+              <Banner tone="error" onDismiss={() => setError(null)}>
+                {error}
+              </Banner>
             )}
-            {tab === 'crosstable' && (
-              <Crosstable
-                tournamentId={status.id}
-                completedRounds={status.completed_rounds}
-                showClub={status.show_club}
-                version={version}
-              />
-            )}
-            {tab === 'rounds' && (
-              <RoundHistory
-                rounds={state.rounds}
-                editRequest={editRequest}
-                busy={busy}
-                onCorrect={handleCorrect}
-                onPrintPairings={(r) => openPrint(api.urls.printPairings(status.id, r))}
-                onPrintCrosstable={(r) => openPrint(api.urls.printCrosstable(status.id, r))}
-                onRollback={handleRollback}
-              />
+            {notice && (
+              <Banner tone="success" onDismiss={() => setNotice(null)}>
+                {notice}
+              </Banner>
             )}
           </div>
-        </>
-      )}
+        )}
+
+        {view === 'faq' && <Faq anchor={faqAnchor} />}
+
+        {view === 'tournament' && !status && (
+          <>
+            <div className="page-head">
+              <h1 className="page-title">Tournois</h1>
+              <p className="page-lead">
+                Créez un tournoi ou reprenez un tournoi enregistré. Appariements, résultats,
+                classement et grille américaine sont calculés à chaque ronde.
+              </p>
+            </div>
+            <div className="home-grid">
+              <CreateTournament
+                disabled={busy}
+                onCreate={handleCreate}
+                onHelp={(anchor) => openFaq(anchor)}
+              />
+              <OpenTournament
+                onOpenFolder={handleOpenFolder}
+                onBrowse={() => setDialog('open')}
+                onImportFile={handleImportFile}
+                onError={setError}
+              />
+            </div>
+          </>
+        )}
+
+        {view === 'tournament' && status && state && (
+          <>
+            <section className="t-head" aria-label="Tournoi en cours">
+              <div className="t-head-main">
+                <p className="eyebrow">{SYSTEM_LABELS[status.system] ?? status.system}</p>
+                <h1 className="page-title">{status.name}</h1>
+                <RoundTrack
+                  total={status.total_rounds}
+                  completed={status.completed_rounds}
+                  awaiting={status.awaiting_results}
+                />
+                <p className="t-meta">
+                  <span>{status.player_count} joueurs</span>
+                  <span>
+                    {status.finished
+                      ? `Terminé · ${status.total_rounds} rondes`
+                      : `Ronde ${roundLabel} sur ${status.total_rounds}`}
+                  </span>
+                  {status.awaiting_results && <span>En attente des résultats</span>}
+                </p>
+              </div>
+
+              <div className="t-head-side">
+                <div className="toolbar">
+                  <button className="secondary" onClick={() => setDialog('save')} disabled={busy}>
+                    <Icon name="save" />
+                    {status.save_dir ? 'Enregistrer sous…' : 'Enregistrer…'}
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => openPrint(api.urls.exportJson(status.id))}
+                    title="Télécharger l'état complet du tournoi (.json)"
+                  >
+                    <Icon name="download" />
+                    .json
+                  </button>
+                  <button className="ghost" onClick={handleClose}>
+                    Fermer
+                  </button>
+                </div>
+                <div
+                  className={
+                    status.save_error ? 'save-state err' : status.save_dir ? 'save-state ok' : 'save-state warn'
+                  }
+                >
+                  <span className="save-dot" aria-hidden />
+                  {status.save_error ? (
+                    <span>{status.save_error}</span>
+                  ) : status.save_dir ? (
+                    <span>
+                      Sauvegarde automatique · {fmtDate(status.last_saved)}
+                      <code title={status.save_dir}>{status.save_dir}</code>
+                    </span>
+                  ) : (
+                    <span>
+                      Non enregistré ·{' '}
+                      <button className="link" onClick={() => setDialog('save')}>
+                        choisir un dossier
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {!status.finished && (
+              <section className="card card-current">
+                {pendingRound ? (
+                  <>
+                    <header className="card-head">
+                      <h2>
+                        Ronde {pendingRound.round}
+                        <span className="card-sub">Appariements</span>
+                      </h2>
+                    </header>
+                    <Pairings
+                      round={pendingRound}
+                      results={results}
+                      editable
+                      onSetResult={(table, score) => setResults((prev) => ({ ...prev, [table]: score }))}
+                      onSubmit={handleSubmitResults}
+                      onPrint={() => openPrint(api.urls.printPairings(status.id, pendingRound.round))}
+                      onCancelRound={() => handleRollback(status.completed_rounds)}
+                      extraActions={
+                        pendingRound.round > 1 && (
+                          <button
+                            className="secondary"
+                            onClick={() => requestCorrection(pendingRound.round - 1)}
+                          >
+                            <Icon name="edit" />
+                            Corriger la ronde {pendingRound.round - 1}
+                          </button>
+                        )
+                      }
+                    />
+                  </>
+                ) : (
+                  <div className="next-round">
+                    <div>
+                      <h2>Ronde {roundLabel}</h2>
+                      <p className="hint">
+                        {status.player_count < 2
+                          ? 'Inscrivez au moins 2 joueurs pour générer les appariements.'
+                          : status.completed_rounds === 0
+                            ? 'Les inscriptions seront closes à la génération de la première ronde.'
+                            : `Ronde ${status.completed_rounds} terminée. Les appariements tiennent compte des scores, des couleurs et des rencontres déjà jouées.`}
+                      </p>
+                    </div>
+                    <div className="actions">
+                      {status.completed_rounds > 0 && (
+                        <button
+                          className="secondary"
+                          onClick={() => requestCorrection(status.completed_rounds)}
+                        >
+                          <Icon name="edit" />
+                          Corriger la ronde {status.completed_rounds}
+                        </button>
+                      )}
+                      <button onClick={handleGenerateRound} disabled={!canGenerate || busy}>
+                        Générer la ronde {roundLabel}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {status.finished && (
+              <Banner tone="success">
+                Tournoi terminé après {status.total_rounds} rondes. Le classement ci-dessous est
+                définitif ; il reste possible de corriger un résultat dans « Rondes jouées ».
+              </Banner>
+            )}
+
+            <AddPlayers
+              registered={state.players}
+              pending={pendingPlayers}
+              locked={status.started}
+              showClub={status.show_club}
+              busy={busy}
+              onToggleClub={handleToggleClub}
+              onSetClub={handleSetClub}
+              onAdd={(p) => setPendingPlayers((prev) => [...prev, p])}
+              onRemove={(i) => setPendingPlayers((prev) => prev.filter((_, idx) => idx !== i))}
+              onSubmit={handleSubmitPlayers}
+            />
+
+            <section className="card card-results">
+              <div className="tabs" role="tablist" aria-label="Résultats du tournoi">
+                <button
+                  role="tab"
+                  aria-selected={tab === 'standings'}
+                  className="tab"
+                  onClick={() => setTab('standings')}
+                >
+                  Classement
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={tab === 'crosstable'}
+                  className="tab"
+                  onClick={() => setTab('crosstable')}
+                >
+                  Grille américaine
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={tab === 'rounds'}
+                  className="tab"
+                  onClick={() => setTab('rounds')}
+                >
+                  Rondes jouées <span className="count">{status.completed_rounds}</span>
+                </button>
+              </div>
+
+              <div className="tab-panel" role="tabpanel">
+                {tab === 'standings' && (
+                  <Standings standings={state.standings} showClub={status.show_club} />
+                )}
+                {tab === 'crosstable' && (
+                  <Crosstable
+                    tournamentId={status.id}
+                    completedRounds={status.completed_rounds}
+                    showClub={status.show_club}
+                    version={version}
+                  />
+                )}
+                {tab === 'rounds' && (
+                  <RoundHistory
+                    rounds={state.rounds}
+                    editRequest={editRequest}
+                    busy={busy}
+                    onCorrect={handleCorrect}
+                    onPrintPairings={(r) => openPrint(api.urls.printPairings(status.id, r))}
+                    onPrintCrosstable={(r) => openPrint(api.urls.printCrosstable(status.id, r))}
+                    onRollback={handleRollback}
+                  />
+                )}
+              </div>
+            </section>
+          </>
+        )}
+      </main>
 
       {dialog === 'save' && status && (
         <FolderPicker
@@ -491,6 +592,38 @@ export default function App() {
           onConfirm={(path) => handleOpenFolder(path)}
         />
       )}
+      {confirmDialog}
+      <LongTaskOverlay label={longTask} />
     </div>
+  )
+}
+
+/**
+ * One segment per round: played (ink), current (red, like the logo's field),
+ * still to come (light). Gives the tournament's progress at a glance.
+ */
+function RoundTrack({
+  total,
+  completed,
+  awaiting,
+}: {
+  total: number
+  completed: number
+  awaiting: boolean
+}) {
+  if (total <= 0) return null
+  const current = completed < total ? completed + 1 : null
+  return (
+    <ol className="round-track" aria-label={`${completed} ronde(s) jouée(s) sur ${total}`}>
+      {Array.from({ length: total }, (_, i) => {
+        const r = i + 1
+        const state = r <= completed ? 'done' : r === current ? (awaiting ? 'live' : 'next') : 'todo'
+        return (
+          <li key={r} className={`rt-${state}`} title={`Ronde ${r}`}>
+            <span className="rt-label">{r}</span>
+          </li>
+        )
+      })}
+    </ol>
   )
 }

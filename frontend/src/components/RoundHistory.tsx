@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ResultInput, RoundInfo } from '../types'
 import { Pairings } from './Pairings'
+import { Icon } from './Icon'
+import { EmptyState } from './Feedback'
 
 /** Ask the history to open a round in edit mode (nonce: re-trigger on same round) */
 export interface EditRequest {
@@ -68,7 +70,12 @@ export function RoundHistory({
   }, [editRequest])
 
   if (!round) {
-    return <p className="muted">Aucune ronde terminée pour l'instant.</p>
+    return (
+      <EmptyState title="Aucune ronde terminée">
+        Les rondes apparaîtront ici une fois leurs résultats validés. Vous pourrez alors les
+        imprimer, les corriger ou revenir en arrière.
+      </EmptyState>
+    )
   }
 
   const isLast = round.round === completed.length && rounds.length === completed.length
@@ -80,17 +87,20 @@ export function RoundHistory({
 
   return (
     <div>
-      <div className="round-tabs">
+      <div className="round-tabs" role="tablist" aria-label="Rondes terminées">
         {completed.map((r) => (
           <button
             key={r.round}
-            className={r.round === round.round ? 'tab active' : 'tab'}
+            role="tab"
+            aria-selected={r.round === round.round}
+            className="round-chip"
             onClick={() => {
               setSelected(r.round)
               setEditing(false)
             }}
           >
-            Ronde {r.round}
+            <span className="round-chip-label">Ronde </span>
+            {r.round}
           </button>
         ))}
       </div>
@@ -98,6 +108,7 @@ export function RoundHistory({
       {editing ? (
         <div className="edit-box">
           <p className="edit-title">
+            <Icon name="edit" />
             Correction des résultats de la ronde {round.round}
           </p>
           {later.length > 0 && (
@@ -151,15 +162,21 @@ export function RoundHistory({
         <>
           <Pairings round={round} editable={false} />
           <div className="actions">
-            <button onClick={() => startEdit(round)}>Modifier les résultats</button>
+            <button className="secondary" onClick={() => startEdit(round)}>
+              <Icon name="edit" />
+              Modifier les résultats
+            </button>
             <button className="secondary" onClick={() => onPrintPairings(round.round)}>
-              Imprimer les résultats
+              <Icon name="print" />
+              Résultats
             </button>
             <button className="secondary" onClick={() => onPrintCrosstable(round.round)}>
-              Imprimer la grille après la ronde {round.round}
+              <Icon name="print" />
+              Grille après la ronde {round.round}
             </button>
             {!isLast && (
-              <button className="secondary danger" onClick={() => onRollback(round.round)}>
+              <button className="danger push-end" onClick={() => onRollback(round.round)}>
+                <Icon name="undo" />
                 Revenir à la fin de cette ronde
               </button>
             )}

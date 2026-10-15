@@ -3,6 +3,8 @@ import * as api from '../api'
 import type { Crosstable as CrosstableData, CrosstableCell } from '../types'
 import { TIEBREAK_LABELS } from '../types'
 import { fmtPts } from '../format'
+import { Banner, EmptyState, Spinner } from './Feedback'
+import { Icon } from './Icon'
 
 interface Props {
   tournamentId: string
@@ -64,10 +66,14 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
   }, [tournamentId, afterRound, completedRounds, version])
 
   if (completedRounds === 0) {
-    return <p className="muted">La grille apparaîtra après la première ronde.</p>
+    return (
+      <EmptyState title="Pas encore de grille">
+        La grille américaine apparaîtra dès que les résultats de la première ronde seront validés.
+      </EmptyState>
+    )
   }
-  if (error) return <div className="error">{error}</div>
-  if (!data) return <p className="muted">Chargement…</p>
+  if (error) return <Banner tone="error">{error}</Banner>
+  if (!data) return <Spinner label="Chargement de la grille…" />
 
   const rounds = Array.from({ length: data.after_round }, (_, i) => i + 1)
   const highlighted = data.rows.find((r) => r.name === highlight)
@@ -75,10 +81,14 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
 
   return (
     <div>
-      <div className="actions">
+      <div className="panel-toolbar">
         <label className="inline-label">
           Après la ronde
-          <select value={afterRound} onChange={(e) => setAfterRound(Number(e.target.value))}>
+          <select
+            className="input-sm"
+            value={afterRound}
+            onChange={(e) => setAfterRound(Number(e.target.value))}
+          >
             {Array.from({ length: completedRounds }, (_, i) => i + 1).map((r) => (
               <option key={r} value={r}>
                 {r}
@@ -87,21 +97,22 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
           </select>
         </label>
         <button
-          className="secondary"
+          className="secondary sm"
           onClick={() =>
             window.open(api.urls.printCrosstable(tournamentId, data.after_round), '_blank')
           }
         >
+          <Icon name="print" />
           Imprimer
         </button>
       </div>
 
       <div className="table-scroll">
-        <table className="crosstable">
+        <table className="data crosstable">
           <thead>
             <tr>
-              <th>Pl</th>
-              <th className="left">Nom</th>
+              <th className="sticky-1">Pl</th>
+              <th className="left sticky-2">Nom</th>
               {showClub && <th className="left">Club / équipe</th>}
               <th>Elo</th>
               {rounds.map((r) => (
@@ -123,9 +134,10 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
                   row.name === highlight ? 'hl-self' : opponents.has(row.name) ? 'hl-opp' : undefined
                 }
                 onClick={() => setHighlight(row.name === highlight ? null : row.name)}
+                aria-selected={row.name === highlight}
               >
-                <td className="rank">{row.rank}</td>
-                <td className="name">{row.name}</td>
+                <td className="rank sticky-1">{row.rank}</td>
+                <td className="name sticky-2">{row.name}</td>
                 {showClub && <td className="club">{row.club ?? ''}</td>}
                 <td className="elo">{row.elo}</td>
                 {row.cells.map((c) => (
@@ -142,9 +154,10 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
           </tbody>
         </table>
       </div>
-      <p className="hint">
-        + gain, = nulle, − perte · numéro = place de l'adversaire · B = Blancs, N = Noirs · EXE =
-        exempt · Tr. = Buchholz tronqué. Cliquez sur un joueur pour surligner ses adversaires.
+      <p className="hint table-note">
+        <b className="sym-win">+</b> gain · <b>=</b> nulle · <b className="sym-loss">−</b> perte ·
+        numéro = place de l'adversaire · B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz
+        tronqué. Cliquez sur un joueur pour surligner ses adversaires.
       </p>
     </div>
   )

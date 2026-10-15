@@ -102,6 +102,11 @@ algorithm work, and what every option does, in plain French for non
 specialists. It links to the study `Pheng_New_Pairing_System.pdf`, served
 from `frontend/public/`.
 
+The whole text, including the bar chart data and the spider-chart scores,
+lives in `frontend/src/content/faq.md` (plain Markdown plus a few blocks
+documented at the top of that file). Edit it and save: with `npm run dev`
+the page updates immediately, no code to touch.
+
 ## Saving and reopening tournaments
 
 Click **Enregistrer…** and choose a parent folder and a folder name. From then

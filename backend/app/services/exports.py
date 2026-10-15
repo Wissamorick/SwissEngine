@@ -125,47 +125,51 @@ def crosstable_csv(table: dict, show_club: bool = False) -> str:
 
 # -------------------------------------------------------------------- HTML
 _STYLE = """
+/* Same visual language as the web interface (SwissEngine brand):
+   ink rules instead of filled headers (cheaper to print), the logo red
+   as a single rule above the title, tabular figures everywhere. */
 * { box-sizing: border-box; }
-body { font-family: system-ui, 'Segoe UI', Roboto, sans-serif; color: #111; margin: 24px; }
-header { margin-bottom: 14px; }
-h1 { font-size: 20px; margin: 0 0 2px; }
-h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; color: #333; }
-.meta { color: #666; font-size: 12px; }
+body { font-family: Inter, 'Segoe UI', system-ui, Roboto, sans-serif; color: #141414; margin: 24px; }
+header { margin-bottom: 16px; padding-top: 10px; border-top: 4px solid #cc0000; }
+h1 { font-size: 20px; margin: 0 0 2px; letter-spacing: -0.01em; }
+h2 { font-size: 14px; margin: 0 0 4px; font-weight: 600; color: #4b4743; }
+.meta { color: #78726b; font-size: 12px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { border: 1px solid #c9ced6; padding: 5px 7px; text-align: left; vertical-align: middle; }
-thead th { background: #1f2937; color: #fff; font-weight: 600; text-align: center; border-color: #1f2937; }
-tbody tr:nth-child(even) td { background: #f5f7fa; }
+th, td { border-bottom: 1px solid #ccc7c0; padding: 5px 7px; text-align: left; vertical-align: middle; }
+thead th { background: none; color: #4b4743; font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; text-align: center; border-bottom: 2px solid #141414; }
+tbody tr:last-child td { border-bottom: 2px solid #141414; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.center, th.center { text-align: center; }
 td.rank { text-align: center; font-weight: 700; width: 36px; }
 td.pl { text-align: center; width: 36px; }
-td.name { font-weight: 700; }
-td.club, td.elo { color: #555; }
+td.name { font-weight: 600; }
+td.club, td.elo { color: #4b4743; }
 td.club { font-size: 12px; }
 td.elo { text-align: center; font-variant-numeric: tabular-nums; }
-td.pts { text-align: center; font-weight: 800; font-size: 14px; background: #e8eefc !important; }
-td.tb { text-align: center; color: #444; font-variant-numeric: tabular-nums; }
+td.pts { text-align: center; font-weight: 700; font-size: 14px; border-left: 2px solid #141414; }
+td.tb { text-align: center; color: #4b4743; font-variant-numeric: tabular-nums; }
 td.res { font-weight: 700; text-align: center; white-space: nowrap; }
 td.rc { text-align: center; white-space: nowrap; padding: 4px 3px; font-variant-numeric: tabular-nums; }
 td.rc span { display: inline-block; }
-td.rc .sym { width: 0.9em; text-align: center; font-weight: 800; }
+td.rc .sym { width: 0.9em; text-align: center; font-weight: 700; }
 td.rc .opp { min-width: 1.6em; text-align: right; }
-td.rc .col { width: 1.1em; text-align: left; font-size: 11px; color: #666; padding-left: 1px; }
-td.rc.win .sym { color: #1b6e2a; }
-td.rc.loss .sym { color: #b42318; }
-td.rc.draw .sym { color: #555; }
-td.rc.bye { color: #777; font-size: 12px; letter-spacing: 0.04em; }
-.legend { margin-top: 10px; font-size: 11px; color: #555; }
+td.rc .col { width: 1.1em; text-align: left; font-size: 11px; color: #78726b; padding-left: 1px; }
+td.rc.win .sym { color: #1d6b3a; }
+td.rc.loss .sym { color: #b30000; }
+td.rc.draw .sym { color: #4b4743; }
+td.rc.bye { color: #78726b; font-size: 12px; letter-spacing: 0.04em; }
+.legend { margin-top: 10px; font-size: 11px; color: #4b4743; }
 .toolbar { margin-bottom: 16px; }
-.toolbar button { padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.toolbar button { padding: 0 14px; height: 32px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: #fff; background: #141414; border: 1px solid #141414; border-radius: 4px; box-shadow: 3px 3px 0 #cc0000; }
 @media print {
   body { margin: 0; }
   .toolbar { display: none; }
   @page { size: A4; margin: 10mm; }
   tr { break-inside: avoid; }
   thead { display: table-header-group; }
-  thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  td.pts, tbody tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  header, td.rc .sym { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 """
 
