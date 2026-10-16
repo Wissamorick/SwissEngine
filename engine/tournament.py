@@ -85,6 +85,12 @@ class Tournament:
         self._rounds: list[dict] = []
         # Display option: show the (optional) club / team of each player
         self.show_club = False
+        # True when the player order is already the pairing order and must not
+        # be re-sorted at start (rebuilding a tournament that has rounds).
+        # Player indices drive the round-robin schedule: re-sorting after an
+        # Elo change would silently change the remaining schedule and make
+        # players meet twice.
+        self._keep_order = False
 
     # ---------------------------------------------------------------- players
     def add_players(self, players: list[dict]) -> None:
@@ -123,9 +129,11 @@ class Tournament:
             raise RuntimeError("Need at least 2 players to start")
 
         # Sort by Elo descending (same as TestSwissPheng registration flow).
-        # The sort is stable, so re-sorting an already sorted list is a no-op:
-        # that is what makes a reloaded tournament get the same player indices.
-        self._players = sorted(self._players, key=lambda x: -x["Elo"])
+        # A rebuilt tournament (from_dict with rounds) keeps its saved order:
+        # it is the order fixed when the tournament really started, and the
+        # Elo may have been edited since then (see edit_player).
+        if not self._keep_order:
+            self._players = sorted(self._players, key=lambda x: -x["Elo"])
 
         if len(self._players) % 2 == 1:
             self._players.append(
@@ -213,6 +221,46 @@ class Tournament:
         return self.config.rounds
 
     @property
+    def max_safe_rounds(self) -> int | None:
+        """Largest number of rounds for which a full pairing always exists.
+
+        With m players (bye included, so m is even), after r rounds each
+        player still has m - 1 - r possible opponents. While m - 1 - r >= m / 2,
+        Dirac's theorem gives a Hamiltonian cycle in the graph of the games
+        not played yet, hence a perfect matching. So every round up to
+        round m / 2 can be paired; beyond that it may be impossible.
+
+        Swiss and random systems find such a matching whenever one exists
+        (maximum cardinality matching). None for round-robin (fixed schedule).
+        """
+        if self.config.system.lower() == "roundrobin":
+            return None
+        n = len(self.players)
+        return (n + n % 2) // 2
+
+    def end_tournament(self) -> None:
+        """End the tournament now, after the last completed round.
+
+        Used when the next round cannot be paired (too many rounds for the
+        number of players), or simply to stop early. The number of rounds
+        becomes the number of rounds played, so the file reloads as a
+        finished tournament. Going back to an earlier round afterwards is
+        still possible (the tournament then ends at this same round count).
+        """
+        if self._system is None or self.completed_rounds == 0:
+            raise RuntimeError("Aucune ronde n'a encore été jouée")
+        if self.awaiting_results:
+            raise RuntimeError(
+                "Une ronde attend ses résultats : saisissez-les ou annulez ses appariements d'abord"
+            )
+        if self.is_finished:
+            raise RuntimeError("Le tournoi est déjà terminé")
+        played = self.completed_rounds
+        self.config.rounds = played
+        self._system.total_rounds = played
+        self._system._finished = True
+
+    @property
     def completed_rounds(self) -> int:
         return sum(1 for r in self._rounds if r["results"] is not None)
 
@@ -236,6 +284,7 @@ class Tournament:
             "finished": self.is_finished,
             "player_count": len(self.players),
             "show_club": self.show_club,
+            "max_safe_rounds": self.max_safe_rounds,
             "config": asdict(self.config),
         }
 
@@ -343,6 +392,10 @@ class Tournament:
                 raise ValueError("up_to_round must be >= 0")
             rounds = rounds[:up_to_round]
 
+        # Once a round exists, the saved player order is the starting order
+        # (to_dict writes the players in that order): keep it.
+        tournament._keep_order = bool(rounds)
+
         for position, rnd in enumerate(rounds):
             round_number = position + 1
             saved = sorted(rnd.get("pairings", []), key=lambda p: int(p.get("table", 0)))
@@ -401,6 +454,70 @@ class Tournament:
         if not keep_later_rounds:
             data["rounds"] = data["rounds"][:round_number]
         return Tournament.from_dict(data)
+
+    def edit_player(self, name: str, new_name: str | None = None, elo: int | None = None) -> None:
+        """Rename a player and/or give them a new Elo, in place.
+
+        Allowed at any time, including during the tournament.
+
+        Names and Elo take no part in scores, tiebreaks or colors (those are
+        computed from the results and the player indices), so the change is
+        applied directly where they are stored: the player record and the
+        pairings of every round (the pending one included). No round is
+        replayed. The result is the same state as saving, editing the file
+        and reloading it (checked in Tests/test_player_edit.py).
+
+        - new_name must not be empty, must not be "bye", and must not be the
+          name of another player (case-insensitive comparison).
+        - elo must be an integer >= 0. Pairings already made are not changed;
+          the new Elo is used for the next pairings (Elo order inside a score
+          group when seeding is on, board order) and is shown everywhere,
+          past rounds included. Player indices (round-robin schedule) are not
+          affected.
+
+        Everything is validated before anything is modified.
+        """
+        player = next((p for p in self.players if p["Name"] == name), None)
+        if player is None:
+            raise ValueError(f"Joueur inconnu : « {name} »")
+
+        target = name
+        if new_name is not None:
+            target = new_name.strip()
+            if not target:
+                raise ValueError("Le nom ne peut pas être vide")
+            if target.lower() == "bye":
+                raise ValueError("Le nom « bye » est réservé")
+            if target != name:
+                for p in self.players:
+                    if p is not player and p["Name"].strip().lower() == target.lower():
+                        raise ValueError(f"Le nom « {target} » est déjà pris par un autre joueur")
+
+        if elo is not None:
+            if isinstance(elo, bool) or not isinstance(elo, int):
+                raise ValueError("L'Elo doit être un nombre entier")
+            if elo < 0:
+                raise ValueError("L'Elo doit être positif ou nul")
+
+        # ---- validated: apply
+        # The pairings of self._rounds are the very objects held by the
+        # system (pending round included), so one pass updates everything.
+        pairings = [p for rnd in self._rounds for p in rnd["pairings"]]
+        if target != name:
+            player["Name"] = target
+            for p in pairings:
+                if p.white_name == name:
+                    p.white_name = target
+                if p.black_name == name:
+                    p.black_name = target
+        if elo is not None:
+            player["Elo"] = elo
+            player["strength"] = elo  # same as a freshly loaded player
+            for p in pairings:
+                if p.white_name == target:
+                    p.white_elo = elo
+                if p.black_name == target:
+                    p.black_elo = elo
 
     # ------------------------------------------------------------ crosstable
     def crosstable(self, after_round: int | None = None) -> dict:

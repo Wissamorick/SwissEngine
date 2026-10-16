@@ -1066,6 +1066,40 @@ input.club-input {
   width: 220px;
 }
 
+/* inline edition of a registered player (name + Elo) */
+.player-list li.editing {
+  padding: 6px 0;
+}
+
+.pl-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+}
+
+input.pl-edit-name {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+input.pl-edit-elo {
+  flex: none;
+  width: 84px;
+}
+
+.pl-edit-msg {
+  flex: 1 1 100%;
+  padding-left: 32px;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.pl-edit-msg.error {
+  color: var(--red-ink);
+}
+
 .card-players .card-body > .switch-label {
   margin-bottom: var(--s-3);
 }
@@ -1596,6 +1630,17 @@ main > .banner {
   flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.banner-text > p {
+  margin: 0;
+}
+
+.banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
 }
 
 .banner .icon-button {

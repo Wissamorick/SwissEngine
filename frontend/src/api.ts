@@ -110,6 +110,19 @@ export function setPlayerClub(id: string, name: string, club: string): Promise<T
   return post(`/tournament/${id}/player-club`, { name, club })
 }
 
+export function editPlayer(
+  id: string,
+  name: string,
+  newName: string,
+  elo: number,
+): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/player-edit`, { name, new_name: newName, elo })
+}
+
+export function endTournament(id: string): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/end`)
+}
+
 export function rollback(id: string, roundsToKeep: number): Promise<TournamentStatus> {
   return post(`/tournament/${id}/rollback`, { rounds_to_keep: roundsToKeep })
 }

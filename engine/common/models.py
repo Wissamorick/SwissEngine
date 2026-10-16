@@ -25,3 +25,11 @@ class GameResult:
 
     table: int
     white_score: float
+
+
+class PairingImpossibleError(RuntimeError):
+    """The pairing algorithm could not give an opponent to every player.
+
+    Raised before anything is recorded: the tournament is left unchanged and
+    can still be ended (Tournament.end_tournament) or rolled back.
+    """

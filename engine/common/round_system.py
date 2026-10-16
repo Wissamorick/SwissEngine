@@ -15,7 +15,7 @@ from abc import abstractmethod
 import numpy as np
 
 from engine.common.base import BaseTournamentSystem
-from engine.common.models import GameResult, Pairing
+from engine.common.models import GameResult, Pairing, PairingImpossibleError
 from engine.common.tiebreaks import Bucholz
 from engine.common.utils import standings_swiss
 from engine.config import TournamentConfig
@@ -96,6 +96,21 @@ class RoundBasedSystem(BaseTournamentSystem):
     def generate_round(self) -> list[Pairing]:
         self._prepare_round()
         raw_pairings = self._compute_raw_pairings()
+        # Every player (bye included) must be in exactly one pair. Otherwise
+        # nothing is recorded: some players would silently miss the round.
+        # Guaranteed when the number of rounds is at most m / 2 (m = players,
+        # bye included): see Tournament.max_safe_rounds.
+        seated = [x for pair in raw_pairings for x in pair]
+        if len(seated) != self.n or len(set(seated)) != self.n:
+            missing = [
+                i for i in range(self.n) if i not in set(seated) and self.players[i]["Name"] != "bye"
+            ]
+            raise PairingImpossibleError(
+                f"Impossible d'apparier la ronde {self._current_round} : l'algorithme n'a pas "
+                f"trouvé d'adversaire inédit pour {max(len(missing), 1)} joueur(s). "
+                "Le tournoi est inchangé. Il compte trop de rondes pour son nombre de "
+                "joueurs : vous pouvez le terminer ici."
+            )
         return self._register_round(raw_pairings, assign_colors=True)
 
     def apply_round(self, pairs: list[tuple[int, int]]) -> list[Pairing]:

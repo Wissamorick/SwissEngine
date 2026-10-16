@@ -35,6 +35,8 @@ export interface TournamentStatus {
   finished: boolean
   player_count: number
   show_club: boolean
+  /** above this number of rounds a full pairing may not exist (null: round-robin) */
+  max_safe_rounds: number | null
   config: Omit<TournamentConfigInput, 'name' | 'show_club'>
   save_dir: string | null
   last_saved: string | null

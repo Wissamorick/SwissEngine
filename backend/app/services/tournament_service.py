@@ -114,6 +114,7 @@ def _status(tournament_id: str) -> TournamentStatus:
         finished=raw["finished"],
         player_count=raw["player_count"],
         show_club=raw["show_club"],
+        max_safe_rounds=raw["max_safe_rounds"],
         config=raw["config"],
         save_dir=str(entry.folder) if entry.folder else None,
         last_saved=entry.last_saved,
@@ -164,6 +165,26 @@ def set_options(tournament_id: str, show_club: bool) -> TournamentStatus:
 def set_player_club(tournament_id: str, name: str, club: str) -> TournamentStatus:
     get_tournament(tournament_id).set_club(name, club)
     _autosave(tournament_id, refresh_from=1)
+    return _status(tournament_id)
+
+
+def edit_player(
+    tournament_id: str, name: str, new_name: str | None, elo: int | None
+) -> TournamentStatus:
+    """Rename a player and/or change their Elo, at any time.
+
+    Every saved file is rewritten with the new name / Elo (pairings and
+    crosstables of all the rounds, players list).
+    """
+    get_tournament(tournament_id).edit_player(name, new_name, elo)
+    _autosave(tournament_id, refresh_from=1)
+    return _status(tournament_id)
+
+
+def end_tournament(tournament_id: str) -> TournamentStatus:
+    """End the tournament after the last completed round (e.g. round impossible to pair)."""
+    get_tournament(tournament_id).end_tournament()
+    _autosave(tournament_id)
     return _status(tournament_id)
 
 
@@ -334,6 +355,8 @@ __all__ = [
     "rollback",
     "set_options",
     "set_player_club",
+    "edit_player",
+    "end_tournament",
     "correct_results",
     "print_pairings",
     "print_crosstable",

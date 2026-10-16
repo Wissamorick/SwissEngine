@@ -18,6 +18,7 @@ from backend.app.models.schemas import (
     OptionsRequest,
     PairingResponse,
     PlayerClubRequest,
+    PlayerEditRequest,
     RecentTournament,
     RollbackRequest,
     RoundInfo,
@@ -26,6 +27,8 @@ from backend.app.models.schemas import (
     TournamentState,
     TournamentStatus,
 )
+from engine import PairingImpossibleError
+
 from backend.app.services import storage, tournament_service
 from backend.app.services.tournament_service import TournamentNotFoundError
 
@@ -40,6 +43,9 @@ def _call(fn: Callable[..., T], *args: Any, tournament_id: str | None = None) ->
         return fn(*args)
     except TournamentNotFoundError:
         raise HTTPException(status_code=404, detail=f"Tournament '{tournament_id}' not found")
+    except PairingImpossibleError as exc:
+        # 409: the request is valid but the tournament cannot go on as planned
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except FileExistsError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -116,6 +122,19 @@ def set_player_club(tournament_id: str, body: PlayerClubRequest) -> TournamentSt
     )
 
 
+@router.post("/tournament/{tournament_id}/player-edit", response_model=TournamentStatus)
+def edit_player(tournament_id: str, body: PlayerEditRequest) -> TournamentStatus:
+    """Rename a player and/or change their Elo (also during the tournament)."""
+    return _call(
+        tournament_service.edit_player,
+        tournament_id,
+        body.name,
+        body.new_name,
+        body.elo,
+        tournament_id=tournament_id,
+    )
+
+
 @router.get("/tournament/{tournament_id}/standings", response_model=list[StandingEntry])
 def get_standings(tournament_id: str) -> list[StandingEntry]:
     return _call(tournament_service.get_standings, tournament_id, tournament_id=tournament_id)
@@ -153,6 +172,12 @@ def export_tournament(tournament_id: str) -> JSONResponse:
         content=data,
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{_quote(filename)}"},
     )
+
+
+@router.post("/tournament/{tournament_id}/end", response_model=TournamentStatus)
+def end_tournament(tournament_id: str) -> TournamentStatus:
+    """End the tournament now, after the last completed round."""
+    return _call(tournament_service.end_tournament, tournament_id, tournament_id=tournament_id)
 
 
 @router.post("/tournament/{tournament_id}/rollback", response_model=TournamentStatus)

@@ -105,6 +105,8 @@ class TournamentStatus(BaseModel):
     finished: bool
     player_count: int
     show_club: bool = False
+    # Above this number of rounds a full pairing may not exist (None: round-robin)
+    max_safe_rounds: int | None = None
     config: dict[str, Any]
     # Folder where the tournament is automatically saved (None = not saved yet)
     save_dir: str | None = None
@@ -148,6 +150,14 @@ class OptionsRequest(BaseModel):
 class PlayerClubRequest(BaseModel):
     name: str = Field(min_length=1)
     club: str = ""
+
+
+class PlayerEditRequest(BaseModel):
+    """Rename a player and/or change their Elo (allowed during the tournament)."""
+
+    name: str = Field(min_length=1)  # current name
+    new_name: str | None = None  # None = keep the name
+    elo: int | None = Field(default=None, ge=0)  # None = keep the Elo
 
 
 class CorrectResultsRequest(BaseModel):

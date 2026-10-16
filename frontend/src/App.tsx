@@ -63,6 +63,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [editRequest, setEditRequest] = useState<EditRequest | null>(null)
+  // message of the last "round impossible to pair" error (null = none)
+  const [pairingBlocked, setPairingBlocked] = useState<string | null>(null)
   const [view, setView] = useState<View>('tournament')
   const [faqAnchor, setFaqAnchor] = useState<string | null>(null)
 
@@ -77,6 +79,7 @@ export default function App() {
   const load = useCallback(async (tournamentId: string) => {
     const s = await api.getState(tournamentId)
     setState(s)
+    setPairingBlocked(null)
     setVersion((v) => v + 1)
     remember(tournamentId)
     return s
@@ -200,10 +203,35 @@ export default function App() {
   function handleGenerateRound() {
     if (!id) return
     run(async () => {
-      await api.generateRound(id)
+      try {
+        await api.generateRound(id)
+      } catch (e) {
+        // 409: no full pairing found; the tournament is unchanged
+        if (e instanceof ApiError && e.status === 409) {
+          setPairingBlocked(e.message)
+          return
+        }
+        throw e
+      }
       setResults({})
       await load(id)
     }, 'Calcul des appariements…')
+  }
+
+  async function handleEndTournament() {
+    if (!id || !status) return
+    const ok = await confirm({
+      title: `Terminer le tournoi après la ronde ${status.completed_rounds} ?`,
+      message:
+        'Le classement actuel deviendra le classement final. Il restera possible de corriger un résultat ou de revenir à une ronde précédente.',
+      confirmLabel: 'Terminer le tournoi',
+    })
+    if (!ok) return
+    run(async () => {
+      await api.endTournament(id)
+      await load(id)
+      setNotice(`Tournoi terminé après la ronde ${status.completed_rounds}.`)
+    })
   }
 
   function handleSubmitResults(payload: ResultInput[]) {
@@ -229,6 +257,19 @@ export default function App() {
       await api.setPlayerClub(id, name, club)
       await load(id)
     })
+  }
+
+  // Rename a player and/or change their Elo. Returns true on success.
+  async function handleEditPlayer(name: string, newName: string, elo: number): Promise<boolean> {
+    if (!id) return false
+    let ok = false
+    await run(async () => {
+      await api.editPlayer(id, name, newName, elo)
+      await load(id)
+      setNotice(newName !== name ? `« ${name} » s'appelle maintenant « ${newName} ».` : `Elo de ${name} mis à jour.`)
+      ok = true
+    })
+    return ok
   }
 
   // Correct the results of a completed round. Returns true on success.
@@ -432,6 +473,35 @@ export default function App() {
               </div>
             </section>
 
+            {!status.finished &&
+              !status.started &&
+              status.max_safe_rounds !== null &&
+              status.player_count >= 2 &&
+              status.total_rounds > status.max_safe_rounds && (
+                <Banner tone="warning">
+                  Ce tournoi prévoit {status.total_rounds} rondes pour {status.player_count}{' '}
+                  joueurs. Au-delà de {status.max_safe_rounds} rondes, il peut devenir impossible
+                  de trouver un adversaire inédit à chacun ; le tournoi devra alors s'arrêter
+                  plus tôt que prévu.{' '}
+                  <button className="link" onClick={() => openFaq('nb-rondes')}>
+                    Combien de rondes prévoir ?
+                  </button>
+                </Banner>
+              )}
+
+            {!status.finished && pairingBlocked && !status.awaiting_results && (
+              <Banner tone="error" onDismiss={() => setPairingBlocked(null)}>
+                <p>{pairingBlocked}</p>
+                {status.completed_rounds > 0 && (
+                  <div className="banner-actions">
+                    <button className="secondary sm" onClick={handleEndTournament} disabled={busy}>
+                      Terminer le tournoi après la ronde {status.completed_rounds}
+                    </button>
+                  </div>
+                )}
+              </Banner>
+            )}
+
             {!status.finished && (
               <section className="card card-current">
                 {pendingRound ? (
@@ -496,7 +566,7 @@ export default function App() {
 
             {status.finished && (
               <Banner tone="success">
-                Tournoi terminé après {status.total_rounds} rondes. Le classement ci-dessous est
+                Tournoi terminé après {status.total_rounds} ronde{status.total_rounds > 1 ? 's' : ''}. Le classement ci-dessous est
                 définitif ; il reste possible de corriger un résultat dans « Rondes jouées ».
               </Banner>
             )}
@@ -509,6 +579,7 @@ export default function App() {
               busy={busy}
               onToggleClub={handleToggleClub}
               onSetClub={handleSetClub}
+              onEditPlayer={handleEditPlayer}
               onAdd={(p) => setPendingPlayers((prev) => [...prev, p])}
               onRemove={(i) => setPendingPlayers((prev) => prev.filter((_, idx) => idx !== i))}
               onSubmit={handleSubmitPlayers}

@@ -15,6 +15,9 @@ interface Props {
   onToggleClub: (show: boolean) => void
   /** club of a registered player (can be changed at any time) */
   onSetClub: (name: string, club: string) => void
+  /** rename a registered player and/or change their Elo (allowed at any time).
+   *  Resolves to true when the change was accepted by the server. */
+  onEditPlayer: (name: string, newName: string, elo: number) => Promise<boolean>
   onAdd: (player: PlayerInput) => void
   onRemove: (index: number) => void
   onSubmit: () => void
@@ -36,6 +39,107 @@ function ClubInput({ value, onSave }: { value: string; onSave: (club: string) =>
   )
 }
 
+/** Same rule as the server: a name may not be empty, "bye", or another
+ *  player's name (case-insensitive). Returns an error message or null. */
+function nameError(newName: string, current: string, all: PlayerInput[]): string | null {
+  const t = newName.trim()
+  if (!t) return 'Le nom ne peut pas être vide.'
+  if (t.toLowerCase() === 'bye') return 'Le nom « bye » est réservé.'
+  if (t !== current && all.some((p) => p.name !== current && p.name.trim().toLowerCase() === t.toLowerCase()))
+    return `Le nom « ${t} » est déjà pris par un autre joueur.`
+  return null
+}
+
+function EditPlayerRow({
+  player,
+  index,
+  all,
+  started,
+  busy,
+  onSave,
+  onCancel,
+}: {
+  player: PlayerInput
+  index: number
+  all: PlayerInput[]
+  started: boolean
+  busy: boolean
+  onSave: (newName: string, elo: number) => void
+  onCancel: () => void
+}) {
+  const [name, setName] = useState(player.name)
+  const [elo, setElo] = useState(String(player.elo))
+  const eloValue = Number(elo)
+  const eloOk = elo.trim() !== '' && Number.isInteger(eloValue) && eloValue >= 0
+  const error = nameError(name, player.name, all) ?? (eloOk ? null : "L'Elo doit être un entier positif ou nul.")
+  const changed = name.trim() !== player.name || (eloOk && eloValue !== player.elo)
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (error || !changed) return
+    onSave(name.trim(), eloValue)
+  }
+
+  return (
+    <li className="editing">
+      <form
+        className="pl-edit"
+        onSubmit={submit}
+        onKeyDown={(e) => e.key === 'Escape' && onCancel()}
+      >
+        <span className="pl-num">{index + 1}</span>
+        <input
+          type="text"
+          className="input-sm pl-edit-name"
+          aria-label="Nom du joueur"
+          value={name}
+          autoFocus
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="number"
+          min={0}
+          step={1}
+          className="input-sm pl-edit-elo"
+          aria-label="Elo"
+          value={elo}
+          onChange={(e) => setElo(e.target.value)}
+        />
+        <button
+          type="submit"
+          className="icon-button"
+          disabled={busy || !!error || !changed}
+          aria-label="Valider la modification"
+          title="Valider (Entrée)"
+        >
+          <Icon name="check" size={14} />
+        </button>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onCancel}
+          aria-label="Annuler la modification"
+          title="Annuler (Échap)"
+        >
+          <Icon name="close" size={14} />
+        </button>
+        {error ? (
+          <span className="pl-edit-msg error" role="alert">{error}</span>
+        ) : (
+          started &&
+          eloOk &&
+          eloValue !== player.elo && (
+            <span className="pl-edit-msg">
+              Les appariements déjà faits ne changent pas ; le nouvel Elo comptera pour les
+              rondes suivantes.
+            </span>
+          )
+        )}
+      </form>
+    </li>
+  )
+}
+
 export function AddPlayers({
   registered,
   pending,
@@ -44,6 +148,7 @@ export function AddPlayers({
   busy = false,
   onToggleClub,
   onSetClub,
+  onEditPlayer,
   onAdd,
   onRemove,
   onSubmit,
@@ -51,6 +156,12 @@ export function AddPlayers({
   const [name, setName] = useState('')
   const [elo, setElo] = useState(1500)
   const [club, setClub] = useState('')
+  /** name of the registered player being edited (null = none) */
+  const [editing, setEditing] = useState<string | null>(null)
+
+  async function saveEdit(current: string, newName: string, newElo: number) {
+    if (await onEditPlayer(current, newName, newElo)) setEditing(null)
+  }
 
   function add(e: React.FormEvent) {
     e.preventDefault()
@@ -77,20 +188,42 @@ export function AddPlayers({
       </EmptyState>
     ) : (
       <ol className={showClub ? 'player-list with-club' : 'player-list'}>
-        {registered.map((p, i) => (
-          <li key={`r-${p.name}`}>
-            <span className="pl-num">{i + 1}</span>
-            <span className="pl-name">{p.name}</span>
-            <span className="pl-elo">{p.elo}</span>
-            {showClub && (
-              <ClubInput
-                key={p.club ?? ''}
-                value={p.club ?? ''}
-                onSave={(c) => onSetClub(p.name, c)}
-              />
-            )}
-          </li>
-        ))}
+        {registered.map((p, i) =>
+          editing === p.name ? (
+            <EditPlayerRow
+              key={`e-${p.name}`}
+              player={p}
+              index={i}
+              all={[...registered, ...pending]}
+              started={locked}
+              busy={busy}
+              onSave={(n, e) => saveEdit(p.name, n, e)}
+              onCancel={() => setEditing(null)}
+            />
+          ) : (
+            <li key={`r-${p.name}`}>
+              <span className="pl-num">{i + 1}</span>
+              <span className="pl-name">{p.name}</span>
+              <span className="pl-elo">{p.elo}</span>
+              {showClub && (
+                <ClubInput
+                  key={p.club ?? ''}
+                  value={p.club ?? ''}
+                  onSave={(c) => onSetClub(p.name, c)}
+                />
+              )}
+              <button
+                className="icon-button"
+                onClick={() => setEditing(p.name)}
+                disabled={busy}
+                aria-label={`Modifier le nom ou l'Elo de ${p.name}`}
+                title="Modifier le nom ou l'Elo"
+              >
+                <Icon name="edit" size={14} />
+              </button>
+            </li>
+          ),
+        )}
         {pending.map((p, i) => (
           <li key={`p-${p.name}-${i}`} className="pending">
             <span className="pl-num">{registered.length + i + 1}</span>
