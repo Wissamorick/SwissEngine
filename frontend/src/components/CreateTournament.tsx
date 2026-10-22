@@ -17,6 +17,13 @@ const BYE_OPTIONS = [
   { value: 1, label: '1', help: 'Une victoire : la valeur la plus répandue (règle par défaut de la FIDE).' },
 ]
 
+// Round 1: color of the higher-ranked player on table 1; colors then alternate.
+const FIRST_BOARD_OPTIONS: { value: TournamentConfigInput['first_board_color']; label: string }[] = [
+  { value: 'white', label: 'Blancs' },
+  { value: 'random', label: 'Aléatoire' },
+  { value: 'black', label: 'Noirs' },
+]
+
 export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
   const [name, setName] = useState('')
   const [system, setSystem] = useState('dutch')
@@ -25,6 +32,7 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
   const [beta, setBeta] = useState(2)
   const [byeValue, setByeValue] = useState(0.5)
   const [seeding, setSeeding] = useState(true)
+  const [firstBoard, setFirstBoard] = useState<TournamentConfigInput['first_board_color']>('random')
   const [showClub, setShowClub] = useState(false)
   // Round-robin: as many rounds as needed for everyone to meet everyone
   const [rrAllRounds, setRrAllRounds] = useState(true)
@@ -49,6 +57,7 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
       beta,
       bye_value: byeValue,
       seeding,
+      first_board_color: firstBoard,
       show_club: showClub,
     })
   }
@@ -179,6 +188,29 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
                 <span className="field-help">contrainte sur les couleurs</span>
               </label>
             )}
+          </div>
+
+          <div className="field">
+            <span className="field-label" id="first-board-label">
+              Couleur à la table 1 (ronde 1)
+            </span>
+            <div className="seg seg-field" role="radiogroup" aria-labelledby="first-board-label">
+              {FIRST_BOARD_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={firstBoard === o.value}
+                  className="seg-btn"
+                  onClick={() => setFirstBoard(o.value)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <span className="field-help">
+              Couleur du mieux classé de la table 1 ; elle alterne ensuite d'une table à l'autre.
+            </span>
           </div>
 
           {usesSwissOptions && (

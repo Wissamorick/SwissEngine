@@ -1449,23 +1449,184 @@ td.rc.bye {
   letter-spacing: 0.06em;
 }
 
-table.crosstable tbody tr.hl-self td {
+/* --- "click a player to see their opponents" ------------------------- */
+.hl-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-2);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.hl-bar > span {
+  flex: 1 1 260px;
+}
+
+.hl-bar.active {
+  border: 1px solid var(--ink);
+  border-left: 4px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.hl-bar-icon {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.hl-bar.active .hl-bar-icon {
+  color: var(--ink);
+}
+
+.hl-bar-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+
+/* legend chips, same colours as the rows below */
+.hl-key {
+  display: inline-block;
+  padding: 0 6px;
+  margin: 1px 0;
+  border-left: 3px solid;
+  border-radius: var(--r-1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hl-key-win {
+  background: var(--ok-tint);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.hl-key-loss {
   background: var(--red-tint);
+  border-color: var(--red);
+  color: var(--red-ink);
+}
+
+.hl-key-draw {
+  background: var(--surface-3);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+table.crosstable tbody tr:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: -2px;
+}
+
+/* selected player: inverted (black) row */
+table.crosstable tbody tr.hl-self td {
+  background: var(--ink);
+  color: #fff;
 }
 
 table.crosstable tbody tr.hl-self td.name {
-  color: var(--red-ink);
-  box-shadow:
-    inset 3px 0 0 var(--red),
-    inset -1px 0 0 var(--line);
+  font-weight: 700;
 }
 
-table.crosstable tbody tr.hl-opp td {
+table.crosstable tbody tr.hl-self td.rank,
+table.crosstable tbody tr.hl-self td.elo,
+table.crosstable tbody tr.hl-self td.club,
+table.crosstable tbody tr.hl-self td.tb,
+table.crosstable tbody tr.hl-self td.rc .col {
+  color: #d6d2cc;
+}
+
+table.crosstable tbody tr.hl-self td.rc.win .sym {
+  color: #8fd9a8;
+}
+
+table.crosstable tbody tr.hl-self td.rc.loss .sym {
+  color: #ff9c9c;
+}
+
+table.crosstable tbody tr.hl-self td.rc.draw .sym {
+  color: #fff;
+}
+
+/* opponents, coloured by the selected player's result against them:
+   green = beaten, red = lost to, black = draw */
+table.crosstable tbody tr.hl-opp td.name {
+  font-weight: 700;
+}
+
+table.crosstable tbody tr.hl-win td {
+  background: var(--ok-tint);
+}
+
+table.crosstable tbody tr.hl-win td.sticky-1 {
+  box-shadow: inset 4px 0 0 var(--ok);
+}
+
+table.crosstable tbody tr.hl-win td.name {
+  color: var(--ok);
+}
+
+table.crosstable tbody tr.hl-loss td {
+  background: var(--red-tint);
+}
+
+table.crosstable tbody tr.hl-loss td.sticky-1 {
+  box-shadow: inset 4px 0 0 var(--red);
+}
+
+table.crosstable tbody tr.hl-loss td.name {
+  color: var(--red-ink);
+}
+
+table.crosstable tbody tr.hl-draw td {
   background: var(--surface-3);
 }
 
-table.crosstable tbody tr:hover td.sticky-1,
-table.crosstable tbody tr:hover td.sticky-2 {
+table.crosstable tbody tr.hl-draw td.sticky-1 {
+  box-shadow: inset 4px 0 0 var(--ink);
+}
+
+table.crosstable tbody tr.hl-draw td.name {
+  color: var(--ink);
+}
+
+/* the game played against the selected player, in each opponent's row */
+table.crosstable tbody tr.hl-opp td.rc.meet {
+  background: var(--surface);
+  font-weight: 700;
+}
+
+table.crosstable tbody tr.hl-win td.rc.meet {
+  box-shadow: inset 0 0 0 2px var(--ok);
+}
+
+table.crosstable tbody tr.hl-loss td.rc.meet {
+  box-shadow: inset 0 0 0 2px var(--red);
+}
+
+table.crosstable tbody tr.hl-draw td.rc.meet {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* everybody else steps back */
+table.crosstable tbody tr.hl-dim td {
+  color: var(--ink-4);
+}
+
+table.crosstable tbody tr.hl-dim td.rc .sym,
+table.crosstable tbody tr.hl-dim td.rc .col {
+  color: var(--ink-4);
+}
+
+table.crosstable tbody tr:not(.hl-self):not(.hl-opp):hover td.sticky-1,
+table.crosstable tbody tr:not(.hl-self):not(.hl-opp):hover td.sticky-2 {
   background: var(--surface-2);
 }
 
@@ -2755,7 +2916,8 @@ a.pdf-link:hover {
   .toolbar,
   .actions,
   .tabs,
-  .banners {
+  .banners,
+  .hl-bar {
     display: none !important;
   }
 

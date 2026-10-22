@@ -9,6 +9,8 @@ export interface TournamentConfigInput {
   beta: number
   bye_value: number
   seeding: boolean
+  /** round 1: color of the higher-ranked player on table 1 (then alternating) */
+  first_board_color: 'white' | 'random' | 'black'
   show_club: boolean
 }
 

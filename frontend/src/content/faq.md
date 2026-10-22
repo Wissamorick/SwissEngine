@@ -121,7 +121,7 @@ La grille américaine résume tout le tournoi sur une page : une ligne par joueu
 - `5` : contre le joueur classé 5^e^ ;
 - `N` : avec les Noirs (`B` = Blancs).
 
-`EXE` signifie « exempt » : le joueur n'a pas joué cette ronde (nombre impair de joueurs). Dans l'application, cliquez sur un joueur pour surligner ses adversaires. Vous pouvez afficher la grille après n'importe quelle ronde.
+`EXE` signifie « exempt » : le joueur n'a pas joué cette ronde (nombre impair de joueurs). Dans l'application, cliquez sur un joueur : sa ligne passe en noir et ses adversaires sont surlignés selon le résultat, en vert ceux qu'il a battus, en rouge ceux qui l'ont battu, en gris foncé les nulles (la case de leur rencontre est encadrée) ; les autres joueurs s'estompent. Cliquez à nouveau ou sur « Effacer » pour revenir à la grille complète. Vous pouvez afficher la grille après n'importe quelle ronde.
 
 ### À quoi sert « Afficher club / équipe » ? {#club}
 
@@ -162,11 +162,11 @@ Swiss Dutch | 2,5 | 5 | 3 | 2 | 1,5
 Swiss Burstein | 3 | 1 | 2 | 3 | 2
 Mixte | 3 | 3,5 | 3 | 3 | 2
 Swiss Random | 2 | 3 | 3 | 2 | 1
-Swiss Random 2 | 2 | 3 | 3 | 2 | 1
+Swiss Random 2 | 3 | 3 | 3 | 2,5 | 2
 Monrad | 0 | 2 | 4 | 1 | 0
 Round-robin | 5 | 5 | 2 | 5 | 5
 Aléatoire | 0,5 | 2 | 2 | 0 | 0,5
-note: Notes attribuées par l'auteur de l'étude, d'après les simulations et l'expérience des tournois.
+note: Notes attribuées par l'auteur de l'étude, d'après les simulations et l'expérience des tournois. Swiss Random 2 : notes revues après correction du système (voir sa fiche).
 :::
 
 ### Combien de rondes prévoir ? {#nb-rondes}
@@ -203,14 +203,14 @@ série: | 0.7209 | 0.8898
 * Swiss Pheng | 0.8360
 Swiss Burstein | 0.8019
 Swiss Dutch | 0.7778
-Swiss Random 2 | 0.7669
+Swiss Random 2 | 0.7951
 Swiss Random | 0.7642
 Mixte | non mesuré
 Monrad | 0.6384
-note: 10 000 tournois simulés de 32 joueurs en 7 rondes ; points 3-2-1-1-1-1-1 pour le Swiss Pheng.
+note: 10 000 tournois simulés de 32 joueurs en 7 rondes ; points 3-2-1-1-1-1-1 pour le Swiss Pheng. Swiss Random 2 : version corrigée, mesurée avec le même protocole sur 2 000 tournois (0,7669 dans l'étude, avant correction).
 :::
 
-Sur le papier, le Burstein fait un peu mieux que le Dutch, mais il est peu agréable en pratique (voir [Swiss Burstein](#burstein)). Le Swiss Pheng fait beaucoup mieux que les deux, en gardant les appariements habituels.
+Sur le papier, le Burstein fait un peu mieux que le Dutch, mais il est peu agréable en pratique (voir [Swiss Burstein](#burstein)). Le [Swiss Random 2](#swissrandom2), une fois corrigé, se place entre les deux. Le Swiss Pheng fait beaucoup mieux que tous les autres, en gardant les appariements habituels.
 
 Classement des systèmes selon trois objectifs (1 = le meilleur) :
 
@@ -219,12 +219,12 @@ Classement des systèmes selon trois objectifs (1 = le meilleur) :
 | --- | --- | --- | --- |
 | Swiss Pheng | 1 | 1 | 1 |
 | Swiss Burstein | 2 | 2 | 2 |
-| Swiss Dutch | 3 | 5 | 3 |
-| Swiss Random 2 | 4 | 3 | 4 |
+| Swiss Random 2 | 3 | 3 | 3 |
+| Swiss Dutch | 4 | 5 | 4 |
 | Swiss Random | 5 | 4 | 5 |
 | Monrad | 6 | 6 | 6 |
 
-> Simulations de tournois de 32 joueurs en 7 rondes. « Meilleurs d'une catégorie » : retrouver les 3 meilleurs d'un groupe représentant environ 20 % des joueurs.
+> Simulations de tournois de 32 joueurs en 7 rondes. « Meilleurs d'une catégorie » : retrouver les 3 meilleurs d'un groupe représentant environ 15 % des joueurs. Swiss Random 2 : version corrigée (voir sa fiche) ; pour les catégories, son avance sur le Dutch est faible et reste à confirmer.
 
 ## 3. Les systèmes un par un {#systemes}
 
@@ -332,11 +332,13 @@ Un compromis entre Swiss Dutch et Swiss Random : chaque joueur de la moitié hau
 [[araignee: Swiss Random 2]]
 
 :::points
-+ Légèrement plus précis que le Swiss Random, et meilleur que le Dutch pour trouver les 5 premiers.
++ Plus précis que le Swiss Dutch et le Swiss Random, presque autant que le Burstein, en particulier pour trouver les 5 premiers.
 + Évite que deux favoris se rencontrent trop tôt.
 - Non reconnu par la FIDE.
 - Moins précis que le Burstein.
 :::
+
+> La version utilisée dans l'étude ne séparait correctement en deux moitiés que le premier groupe de points : les autres groupes étaient appariés entièrement au hasard. SwissEngine utilise la version corrigée, nettement plus précise. Dans nos simulations (même protocole que l'étude), elle classe mieux que le Swiss Dutch et trouve mieux les 5 premiers, juste derrière le Swiss Burstein : environ 44 sur l'échelle de 0 à 100 de [la comparaison](#comparaison), contre 27 pour l'ancienne version. Les graphiques et tableaux de cette page ont été mis à jour avec la version corrigée.
 
 ### Aléatoire {#aleatoire}
 
@@ -367,7 +369,7 @@ Chaque joueur rencontre tous les autres une fois. Avec *n* joueurs, il faut *n* 
 ### Le principe général, en quelques étapes {#algo-general}
 
 1. **Lister toutes les rencontres possibles.** Chaque paire de joueurs qui ne se sont pas encore affrontés est une rencontre possible. Celles qui sont interdites (déjà jouées, ou qui déséquilibreraient trop les couleurs) sont écartées.
-2. **Donner une note à chaque rencontre**, d'autant plus haute qu'elle est souhaitable. Le critère principal, de très loin : les deux joueurs ont le même nombre de points. Ensuite, à égalité, la note suit la règle du système choisi (Dutch, Burstein, Monrad…).
+2. **Donner une note à chaque rencontre**, d'autant plus haute qu'elle est souhaitable. Le critère principal, de très loin : les deux joueurs ont le même nombre de points. Ensuite, les couleurs : on préfère faire jouer ensemble un joueur qui doit avoir les Blancs et un joueur qui doit avoir les Noirs (voir [les couleurs](#couleurs)). Enfin, la note suit la règle du système choisi (Dutch, Burstein, Monrad…).
 3. **Choisir la meilleure combinaison.** L'ordinateur cherche la façon de faire jouer tout le monde en même temps qui donne le meilleur total de notes.
 4. **Attribuer les couleurs** (voir ci-dessous) et numéroter les tables : dans les systèmes suisses, les joueurs qui ont le plus de points sont aux premières tables.
 5. Après la ronde, mettre à jour les points et recommencer.
@@ -380,9 +382,24 @@ Pour cela, SwissEngine utilise un algorithme classique de recherche de « coupl
 
 ### Comment sont attribuées les couleurs (Blancs / Noirs) ? {#couleurs}
 
-Aux échecs, avoir les Blancs donne un léger avantage : chacun doit donc avoir les Blancs à peu près aussi souvent que les Noirs. Une fois les paires choisies, le joueur qui a eu le plus souvent les Noirs prend les Blancs ; à égalité, c'est tiré au sort.
+Aux échecs, avoir les Blancs donne un léger avantage : chacun doit donc avoir les Blancs à peu près aussi souvent que les Noirs, et si possible en alternant. SwissEngine s'en occupe à trois moments.
 
-De plus, deux joueurs qui ont tous les deux eu trop souvent la même couleur ne peuvent pas être appariés ensemble (l'un d'eux en aurait encore une fois de trop). Le seuil est réglé par l'option [Beta](#opt-beta). Pour d'autres jeux, la « couleur » peut représenter le côté du terrain, le premier joueur, le match à domicile…
+**1. À la première ronde : alternance de table en table.** Comme dans les tournois officiels, le mieux classé de la table 1 reçoit une couleur (tirée au sort par défaut, ou choisie dans [les options](#opt-table1)), celui de la table 2 l'autre couleur, et ainsi de suite. Les premières tables sont ainsi équilibrées, au lieu de dépendre du hasard.
+
+**2. Pendant les appariements : on évite de redonner la même couleur.** Pour chaque joueur, l'ordinateur sait de quelle couleur il a « besoin » :
+
+- celui qui a eu plus souvent les Blancs que les Noirs doit avoir les Noirs, et inversement ;
+- à égalité, celui qui vient de jouer avec les Blancs doit plutôt avoir les Noirs, et inversement : les couleurs alternent d'une ronde à l'autre.
+
+Entre deux rencontres possibles avec le même nombre de points, l'ordinateur préfère celle où l'un a besoin des Blancs et l'autre des Noirs. Il ne donne la même couleur deux fois de suite que s'il n'y a pas d'autre solution. La règle du système (Dutch, Burstein…) ne passe qu'après : elle est respectée chaque fois que c'est possible sans gêner les couleurs. Souvent, elle donne d'ailleurs déjà des couleurs alternées et rien ne change ; sinon, l'ordinateur échange en général juste quelques adversaires. Cette étape concerne les systèmes suisses : en aléatoire et en round-robin, seules les étapes 1 et 3 s'appliquent.
+
+**3. Une fois les paires choisies :** celui qui a le plus besoin des Blancs les prend.
+
+Dans nos simulations (tournois de 40 joueurs en 7 rondes, Swiss Dutch), cela divise par plus de trois le nombre de fois où un joueur a deux fois de suite la même couleur, et presque par quatorze les séries de trois. En contrepartie, le classement final est très légèrement moins juste, car le système suit un peu moins sa règle pour éviter les doublons : environ −2 points pour le Swiss Dutch et −4 pour le Swiss Burstein sur l'échelle de 0 à 100 utilisée dans [la comparaison des systèmes](#comparaison).
+
+De plus, deux joueurs qui ont tous les deux eu trop souvent la même couleur ne peuvent pas être appariés ensemble (l'un d'eux en aurait encore une fois de trop). Le seuil est réglé par l'option [Beta](#opt-beta). Pour d'autres jeux, la « couleur » peut représenter le côté du terrain, le premier joueur, le match à domicile…
+
+> L'étude dont sont tirés les résultats de cette page comparait les systèmes en ignorant l'équilibre des couleurs pendant les appariements (seule la règle Beta était appliquée), pour que la comparaison soit équitable. SwissEngine, lui, en tient compte, ce qui coûte quelques points de justesse (voir ci-dessus) : les chiffres de l'étude sont donc un peu optimistes pour une utilisation réelle.
 
 ### Et s'il y a un nombre impair de joueurs ? {#impair}
 
@@ -428,6 +445,12 @@ Règle à partir de quand deux joueurs ne peuvent plus être appariés parce qu'
 - **Plus grand** (par exemple 10) : les couleurs ne limitent quasiment plus les appariements. Utile si la couleur n'a pas d'importance dans votre jeu.
 
 > Sans effet en round-robin et en aléatoire (option masquée).
+
+### Couleur à la table 1 (ronde 1) {#opt-table1}
+
+La couleur du joueur le mieux classé de la table 1 à la première ronde : **Blancs**, **Noirs** ou **Aléatoire** (tirage au sort, par défaut). Les couleurs alternent ensuite d'une table à l'autre : avec « Blancs », le mieux classé a les Blancs aux tables 1, 3, 5…, et les Noirs aux tables 2, 4, 6… C'est l'usage dans les tournois d'échecs officiels, où la couleur de la table 1 est tirée au sort avant la première ronde.
+
+Aux rondes suivantes, les couleurs dépendent de ce que chacun a déjà joué (voir [les couleurs](#couleurs)).
 
 ### Seeding par Elo (sinon Buchholz) {#opt-seeding}
 

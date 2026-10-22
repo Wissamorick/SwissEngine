@@ -3,7 +3,7 @@
 These are NOT the engine models — they only describe the HTTP contract.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +16,8 @@ class CreateTournamentRequest(BaseModel):
     beta: int = Field(default=2, ge=1)
     bye_value: float = Field(default=0.5, ge=0)
     seeding: bool = True
+    # Round 1: color of the higher-ranked player on table 1, then alternating
+    first_board_color: Literal["white", "random", "black"] = "random"
     show_club: bool = False
 
 

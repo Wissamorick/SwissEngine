@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import * as api from '../api'
 import type { Crosstable as CrosstableData, CrosstableCell } from '../types'
 import { TIEBREAK_LABELS } from '../types'
@@ -14,7 +15,15 @@ interface Props {
   version: number
 }
 
-function Cell({ cell }: { cell: CrosstableCell }) {
+type Outcome = 'win' | 'loss' | 'draw'
+
+/** outcome of the selected player against each opponent ('+' → beaten, '-' → lost to) */
+function outcomeOf(result: CrosstableCell['result']): Outcome {
+  return result === '+' ? 'win' : result === '-' ? 'loss' : 'draw'
+}
+
+/** meet: this cell is the game against the selected player */
+function Cell({ cell, meet = false }: { cell: CrosstableCell; meet?: boolean }) {
   if (cell.bye) {
     return (
       <td className="rc bye" title="Exempt">
@@ -27,7 +36,7 @@ function Cell({ cell }: { cell: CrosstableCell }) {
   const color = cell.color === 'W' ? 'B' : 'N'
   return (
     <td
-      className={`rc ${kind}`}
+      className={`rc ${kind}${meet ? ' meet' : ''}`}
       title={`${cell.color === 'W' ? 'Blancs' : 'Noirs'} contre ${cell.opponent} (${fmtPts(cell.points)} pt)`}
     >
       <span className="sym">{cell.result === '-' ? '−' : cell.result}</span>
@@ -76,8 +85,35 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
   if (!data) return <Spinner label="Chargement de la grille…" />
 
   const rounds = Array.from({ length: data.after_round }, (_, i) => i + 1)
+  // The selection may disappear when another round is displayed
   const highlighted = data.rows.find((r) => r.name === highlight)
-  const opponents = new Set(highlighted?.cells.map((c) => c.opponent).filter(Boolean))
+  const selected = highlighted?.name ?? null
+  // opponent name -> result of the selected player against them
+  const opponents = new Map<string, Outcome>()
+  for (const c of highlighted?.cells ?? []) {
+    if (c.opponent && c.result !== null) opponents.set(c.opponent, outcomeOf(c.result))
+  }
+  const count = (o: Outcome) => [...opponents.values()].filter((v) => v === o).length
+
+  function toggle(name: string) {
+    setHighlight(name === selected ? null : name)
+  }
+
+  function onRowKey(e: KeyboardEvent<HTMLTableRowElement>, name: string) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      toggle(name)
+    } else if (e.key === 'Escape') {
+      setHighlight(null)
+    }
+  }
+
+  function rowClass(name: string): string | undefined {
+    if (!selected) return undefined
+    if (name === selected) return 'hl-self'
+    const outcome = opponents.get(name)
+    return outcome ? `hl-opp hl-${outcome}` : 'hl-dim'
+  }
 
   return (
     <div>
@@ -107,8 +143,31 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
         </button>
       </div>
 
+      <div className={selected ? 'hl-bar active' : 'hl-bar'} role="status" aria-live="polite">
+        <Icon name="info" className="hl-bar-icon" />
+        {selected ? (
+          <>
+            <span>
+              Adversaires de <b>{selected}</b> :{' '}
+              <span className="hl-key hl-key-win">battus par lui ({count('win')})</span>{' '}
+              <span className="hl-key hl-key-loss">l'ont battu ({count('loss')})</span>{' '}
+              <span className="hl-key hl-key-draw">nulles ({count('draw')})</span>
+              <span className="hl-bar-note">La case encadrée indique la ronde de la rencontre.</span>
+            </span>
+            <button type="button" className="secondary sm" onClick={() => setHighlight(null)}>
+              <Icon name="close" size={14} />
+              Effacer
+            </button>
+          </>
+        ) : (
+          <span>
+            <b>Astuce :</b> cliquez sur un joueur pour surligner ses adversaires.
+          </span>
+        )}
+      </div>
+
       <div className="table-scroll">
-        <table className="data crosstable">
+        <table className={selected ? 'data crosstable has-selection' : 'data crosstable'}>
           <thead>
             <tr>
               <th className="sticky-1">Pl</th>
@@ -130,18 +189,27 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
             {data.rows.map((row) => (
               <tr
                 key={row.name}
-                className={
-                  row.name === highlight ? 'hl-self' : opponents.has(row.name) ? 'hl-opp' : undefined
+                className={rowClass(row.name)}
+                onClick={() => toggle(row.name)}
+                onKeyDown={(e) => onRowKey(e, row.name)}
+                tabIndex={0}
+                aria-selected={row.name === selected}
+                title={
+                  row.name === selected
+                    ? 'Cliquer pour désélectionner'
+                    : `Voir les adversaires de ${row.name}`
                 }
-                onClick={() => setHighlight(row.name === highlight ? null : row.name)}
-                aria-selected={row.name === highlight}
               >
                 <td className="rank sticky-1">{row.rank}</td>
                 <td className="name sticky-2">{row.name}</td>
                 {showClub && <td className="club">{row.club ?? ''}</td>}
                 <td className="elo">{row.elo}</td>
                 {row.cells.map((c) => (
-                  <Cell key={c.round} cell={c} />
+                  <Cell
+                    key={c.round}
+                    cell={c}
+                    meet={!!selected && row.name !== selected && c.opponent === selected}
+                  />
                 ))}
                 <td className="pts">{fmtPts(row.pts)}</td>
                 {data.tiebreak_keys.map((k) => (
@@ -157,7 +225,7 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
       <p className="hint table-note">
         <b className="sym-win">+</b> gain · <b>=</b> nulle · <b className="sym-loss">−</b> perte ·
         numéro = place de l'adversaire · B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz
-        tronqué. Cliquez sur un joueur pour surligner ses adversaires.
+        tronqué.
       </p>
     </div>
   )

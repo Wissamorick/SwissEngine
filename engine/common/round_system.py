@@ -15,6 +15,7 @@ from abc import abstractmethod
 import numpy as np
 
 from engine.common.base import BaseTournamentSystem
+from engine.common.colors import effective_color
 from engine.common.models import GameResult, Pairing, PairingImpossibleError
 from engine.common.tiebreaks import Bucholz
 from engine.common.utils import standings_swiss
@@ -39,6 +40,7 @@ class RoundBasedSystem(BaseTournamentSystem):
 
         for player in self.players:
             player["color_diff"] = 0
+            player["last_color"] = 0  # +1 White, -1 Black, 0 = no game yet
             player["pts"] = 0.0
             player["TB"] = self._empty_tiebreaks()
 
@@ -133,8 +135,36 @@ class RoundBasedSystem(BaseTournamentSystem):
         p = self.players[idx]
         return int(p.get("Elo", 0)), float(p.get("pts", 0.0))
 
+    def _choose_white(self, a: int, b: int, table: int) -> tuple[int, int]:
+        """Return (white, black) for a pair of real players.
+
+        1. The player who needs White more (lower effective color, see
+           engine/common/colors.py) gets White.
+        2. Round 1 (nobody has played): colors alternate from table to table,
+           as in FIDE practice. The higher-ranked player of table 1 gets the
+           color chosen in config.first_board_color ("random": drawn by lot
+           once for the round), the one of table 2 the other color, etc.
+        3. Later exact ties (same cd and same last color): drawn by lot.
+        """
+        ea, eb = effective_color(self.players[a]), effective_color(self.players[b])
+        if ea != eb:
+            return (a, b) if ea < eb else (b, a)
+        if self._current_round == 1:
+            top, other = sorted((a, b), key=self._rank_key)
+            top_white = self._first_board_white if table % 2 == 1 else not self._first_board_white
+            return (top, other) if top_white else (other, top)
+        return (a, b) if rd.random() <= 0.5 else (b, a)
+
+    def _rank_key(self, idx: int) -> tuple:
+        """Pairing order: points, then Elo, then starting rank."""
+        p = self.players[idx]
+        return (-float(p.get("pts", 0.0)), -int(p.get("Elo", 0)), idx)
+
     def _register_round(self, raw_pairings: list[tuple[int, int]], assign_colors: bool) -> list[Pairing]:
         pairings: list[Pairing] = []
+        if assign_colors and self._current_round == 1:
+            choice = self.config.first_board_color
+            self._first_board_white = rd.random() < 0.5 if choice == "random" else choice == "white"
         for table_idx, (a, b) in enumerate(raw_pairings, start=1):
             self._mark_played(a, b)
 
@@ -159,14 +189,12 @@ class RoundBasedSystem(BaseTournamentSystem):
                 continue
 
             if assign_colors:
-                if self.players[a]["color_diff"] > self.players[b]["color_diff"]:
-                    a, b = b, a
-                elif self.players[a]["color_diff"] == self.players[b]["color_diff"]:
-                    if rd.random() > 0.5:
-                        a, b = b, a
+                a, b = self._choose_white(a, b, table_idx)
 
             self.players[a]["color_diff"] += 1
             self.players[b]["color_diff"] -= 1
+            self.players[a]["last_color"] = 1
+            self.players[b]["last_color"] = -1
 
             w_elo, w_pts = self._player_snapshot(a)
             b_elo, b_pts = self._player_snapshot(b)

@@ -131,6 +131,7 @@ def create_tournament(body: CreateTournamentRequest) -> TournamentStatus:
         beta=body.beta,
         bye_value=body.bye_value,
         seeding=body.seeding,
+        first_board_color=body.first_board_color,
     )
     # Validate the system name now rather than at the first round
     if config.system.lower() not in ALL_SYSTEMS:
