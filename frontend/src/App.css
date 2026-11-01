@@ -1166,6 +1166,7 @@ table.data td {
 /* headers: small caps-like labels over a 2 px ink rule (Swiss table style) */
 table.data thead th {
   height: 32px;
+  background: var(--surface-2);
   font-size: var(--fs-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -1227,7 +1228,7 @@ td.col-points {
 }
 
 table.data thead th.col-points {
-  background: transparent;
+  background: var(--surface-2);
   border-left: 0;
   border-right: 0;
 }
@@ -1257,6 +1258,10 @@ table.pairings .col-elo {
 
 table.pairings .col-result {
   width: 168px;
+}
+
+table.pairings.editable .col-result {
+  width: 270px;
 }
 
 table.pairings td.col-black {
@@ -1423,6 +1428,11 @@ table.crosstable .sticky-2 {
   position: sticky;
   z-index: 1;
   background: var(--surface);
+}
+
+table.crosstable thead .sticky-1,
+table.crosstable thead .sticky-2 {
+  background: var(--surface-2);
 }
 
 table.crosstable .sticky-1 {
@@ -1670,6 +1680,8 @@ table.crosstable tbody tr:not(.hl-self):not(.hl-opp):hover td.sticky-2 {
 
 /* ------------------------------------------------------------------ tabs */
 .tabs {
+  background: var(--surface-2);
+  border-radius: var(--r-2) var(--r-2) 0 0;
   display: flex;
   gap: var(--s-1);
   margin: calc(var(--s-5) * -1) calc(var(--s-5) * -1) var(--s-5);
@@ -3010,6 +3022,13 @@ a.pdf-link:hover {
     border: 0;
     padding: 0;
   }
+
+  /* no outcome tints on paper */
+  table.data.pairings tbody tr td.res-win,
+  table.data.pairings tbody tr td.res-loss,
+  table.data.pairings tbody tr td.res-draw {
+    background: none !important;
+  }
 }
 
 /* ---------------------------------------------------- player list import */
@@ -3294,4 +3313,219 @@ button.schedule-tab[aria-selected='true'] {
 
 .limit-hint.full {
   color: var(--red-ink);
+}
+
+/* ----------------------------------------------------------- forfeits */
+.result-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+select.forfeit-select {
+  width: auto;
+  height: 32px;
+  padding: 0 22px 0 6px;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  background-position: right 4px center;
+}
+
+select.forfeit-select.chosen {
+  color: #fff;
+  background-color: var(--ink);
+  border-color: var(--ink);
+  font-weight: 700;
+}
+
+.absent-note {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.absent-note .muted {
+  color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .result-picker {
+    display: flex;
+    width: 100%;
+  }
+
+  .result-picker .seg {
+    flex: 1 1 auto;
+  }
+
+  select.forfeit-select {
+    flex: none;
+    height: 40px;
+    max-width: 96px;
+  }
+}
+
+/* ----------------------------------------- presence (absences, withdrawals) */
+.player-list.with-presence {
+  columns: auto;
+}
+
+.pl-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: none;
+  margin-left: auto;
+}
+
+select.presence-select {
+  width: auto;
+  height: 28px;
+  padding: 0 22px 0 6px;
+  font-size: var(--fs-sm);
+  background-position: right 4px center;
+}
+
+select.presence-select.absent {
+  border-color: var(--warn);
+  background-color: var(--warn-tint);
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.player-list li.withdrawn input.pl-name-input {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+
+.badge-muted {
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.presence-hint {
+  margin: 0 0 var(--s-3);
+}
+
+.late-form {
+  padding: var(--s-3);
+  margin-bottom: var(--s-3);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.late-title {
+  flex: 1 1 100%;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.late-note,
+.late-form .pl-error {
+  flex: 1 1 100%;
+  padding-left: 0;
+}
+
+.late-form .seg {
+  align-self: flex-start;
+  height: calc(var(--control-h));
+  align-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .late-form .seg {
+    align-self: stretch;
+  }
+}
+
+.late-form .seg button.seg-btn {
+  height: auto;
+}
+
+.late-pending {
+  flex: 1 1 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+
+.late-pending li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  padding: 4px 0;
+}
+
+.late-pending .muted {
+  color: var(--ink-3);
+}
+
+/* before the start: absence selector inside the column layout, on one line */
+.player-list:not(.with-presence) li:has(.pl-presence) {
+  flex-wrap: nowrap;
+}
+
+.player-list:not(.with-presence) li:has(.pl-presence) input.pl-name-input {
+  flex: 1 1 0;
+}
+
+.player-list:not(.with-presence) li:has(.pl-presence) input.pl-elo-input {
+  width: 52px;
+}
+
+.player-list:not(.with-presence) .pl-presence {
+  margin-left: 0;
+}
+
+.player-list:not(.with-presence) li.has-error {
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------- result entry: outcome tints */
+/* While results are typed, each player's name is tinted by outcome:
+   light green = win, light red = loss, light grey = draw. The selected
+   result button stays the reference, so colour is never the only cue. */
+table.data.pairings {
+  --res-win: #c6e5cf;
+  --res-loss: #f3c6c6;
+  --res-draw: #dcd9d3;
+}
+
+table.data.pairings tbody tr td.res-win {
+  background: var(--res-win);
+}
+
+table.data.pairings tbody tr td.res-loss {
+  background: var(--res-loss);
+}
+
+table.data.pairings tbody tr td.res-draw {
+  background: var(--res-draw);
+}
+
+@media (max-width: 640px) {
+  table.pairings td.res-win,
+  table.pairings td.res-loss,
+  table.pairings td.res-draw {
+    margin: 1px 0 1px -6px;
+    padding: 2px 6px !important;
+    border-radius: var(--r-1);
+  }
+
+  table.pairings td.res-win {
+    background: var(--res-win) !important;
+  }
+
+  table.pairings td.res-loss {
+    background: var(--res-loss) !important;
+  }
+
+  table.pairings td.res-draw {
+    background: var(--res-draw) !important;
+  }
 }

@@ -7,8 +7,10 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from backend.app.models.schemas import (
+    AbsenceRequest,
     AddPlayersRequest,
     CorrectResultsRequest,
+    LatePlayersRequest,
     CreateTournamentRequest,
     Crosstable,
     DirListing,
@@ -85,6 +87,36 @@ def get_state(tournament_id: str) -> TournamentState:
 @router.post("/tournament/{tournament_id}/players", response_model=TournamentStatus)
 def add_players(tournament_id: str, body: AddPlayersRequest) -> TournamentStatus:
     return _call(tournament_service.add_players, tournament_id, body, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/late-players", response_model=TournamentStatus)
+def add_late_players(tournament_id: str, body: LatePlayersRequest) -> TournamentStatus:
+    """Register players after the start (paired from the next round on)."""
+    return _call(tournament_service.add_late_players, tournament_id, body, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/late-cancel", response_model=TournamentStatus)
+def cancel_late(tournament_id: str, body: PlayerRemoveRequest) -> TournamentStatus:
+    """Cancel the registration of a player still waiting for the results of the round."""
+    return _call(tournament_service.cancel_late, tournament_id, body.name, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/absence", response_model=TournamentStatus)
+def set_absence(tournament_id: str, body: AbsenceRequest) -> TournamentStatus:
+    """Declare (or cancel) the absence of a player from the next round."""
+    return _call(tournament_service.set_absence, tournament_id, body.name, body.value, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/withdraw", response_model=TournamentStatus)
+def withdraw_player(tournament_id: str, body: PlayerRemoveRequest) -> TournamentStatus:
+    """The player leaves the tournament (absent from the next round on)."""
+    return _call(tournament_service.withdraw_player, tournament_id, body.name, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/reinstate", response_model=TournamentStatus)
+def reinstate_player(tournament_id: str, body: PlayerRemoveRequest) -> TournamentStatus:
+    """Cancel a withdrawal (paired again from the next round on)."""
+    return _call(tournament_service.reinstate_player, tournament_id, body.name, tournament_id=tournament_id)
 
 
 @router.post(

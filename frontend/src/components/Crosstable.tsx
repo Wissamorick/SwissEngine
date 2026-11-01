@@ -31,13 +31,28 @@ function Cell({ cell, meet = false }: { cell: CrosstableCell; meet?: boolean }) 
       </td>
     )
   }
+  if (cell.kind === 'absent' || cell.kind === 'withdrawn' || cell.kind === 'late') {
+    const label = cell.kind === 'withdrawn' ? 'OUT' : 'ABS'
+    const why = cell.kind === 'withdrawn' ? 'Retiré' : cell.kind === 'late' ? 'Pas encore arrivé' : 'Absent'
+    return (
+      <td className="rc bye" title={`${why} (${fmtPts(cell.points)} pt)`}>
+        {label}
+        {cell.result === '=' && ' ½'}
+      </td>
+    )
+  }
   if (cell.result === null) return <td className="rc">—</td>
   const kind = cell.result === '+' ? 'win' : cell.result === '-' ? 'loss' : 'draw'
-  const color = cell.color === 'W' ? 'B' : 'N'
+  const forfeit = cell.kind === 'forfeit'
+  const color = forfeit ? 'F' : cell.color === 'W' ? 'B' : 'N'
   return (
     <td
       className={`rc ${kind}${meet ? ' meet' : ''}`}
-      title={`${cell.color === 'W' ? 'Blancs' : 'Noirs'} contre ${cell.opponent} (${fmtPts(cell.points)} pt)`}
+      title={
+        forfeit
+          ? `Forfait contre ${cell.opponent} (${fmtPts(cell.points)} pt)`
+          : `${cell.color === 'W' ? 'Blancs' : 'Noirs'} contre ${cell.opponent} (${fmtPts(cell.points)} pt)`
+      }
     >
       <span className="sym">{cell.result === '-' ? '−' : cell.result}</span>
       <span className="opp">{cell.opponent_rank ?? '?'}</span>
@@ -226,7 +241,8 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
       </div>
       <p className="hint table-note">
         <b className="sym-win">+</b> gain · <b>=</b> nulle · <b className="sym-loss">−</b> perte ·
-        numéro = place de l'adversaire · B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz
+        numéro = place de l'adversaire · B = Blancs, N = Noirs, F = forfait · EXE = exempt · ABS = absent,
+        OUT = retiré · Tr. = Buchholz
         tronqué{data.tiebreak_keys.includes('Perf') && ' · Perf. = performance Elo'}.
       </p>
     </div>

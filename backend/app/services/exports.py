@@ -45,20 +45,41 @@ def fmt_pts(value: float | None) -> str:
     return f"{value:g}"
 
 
-def result_label(white_score: float | None) -> str:
+def result_label(white_score: float | str | None) -> str:
     if white_score is None:
         return ""
+    if isinstance(white_score, str):  # forfeit: "1-F", "F-1", "F-F"
+        return white_score
     return RESULT_LABELS.get(float(white_score), str(white_score))
 
 
+def absence_label(cell: dict) -> str:
+    """ABS (absent, or not arrived yet) / OUT (withdrawn), with ½ when the round gave half a point."""
+    base = "OUT" if cell.get("kind") == "withdrawn" else "ABS"
+    return f"{base} ½" if cell.get("result") == "=" else base
+
+
 def cell_label(cell: dict) -> str:
-    """Crosstable cell: '+12N' = win against #12 with Black; 'EXE' = bye."""
+    """Crosstable cell: '+12N' = win against #12 with Black; '+12F' = forfeit win; 'EXE' = bye."""
     if cell.get("bye"):
         return "EXE"
+    if cell.get("kind") in ("absent", "withdrawn", "late"):
+        return absence_label(cell)
     if cell.get("result") is None:
         return "—"
+    if cell.get("kind") == "forfeit":
+        return f"{cell['result']}{cell.get('opponent_rank') or '?'}F"
     color = "B" if cell.get("color") == "W" else "N"
     return f"{cell['result']}{cell.get('opponent_rank') or '?'}{color}"
+
+
+def absents_text(round_info: dict) -> str:
+    """'Non appariés : Ana (½), Bob (0, retiré)' — players not paired in the round."""
+    reasons = {"withdrawn": ", retiré", "late": ", arrivée ultérieure"}
+    items = [
+        f"{a['name']} ({fmt_pts(a['points'])}{reasons.get(a['reason'], '')})" for a in round_info.get("absent", [])
+    ]
+    return ("Non appariés : " + ", ".join(items)) if items else ""
 
 
 def tiebreak_label(key: str) -> str:
@@ -101,6 +122,8 @@ def pairings_csv(round_info: dict) -> str:
                     fmt_pts(p["black_pts"]),
                 ]
             )
+    for a in round_info.get("absent", []):
+        rows.append(["", "", a["name"], "", "NON APPARIÉ", fmt_pts(a["points"]), "", ""])
     return _csv(rows)
 
 
@@ -236,7 +259,8 @@ def pairings_html(tournament_status: dict, round_info: dict, auto_print: bool = 
         "<th>Noirs</th><th>Pts</th></tr></thead><tbody>"
         + "".join(lines)
         + "</tbody></table>"
-        + "<p class='legend'>Pts = points avant la ronde.</p>"
+        + (f"<p class='legend'>{escape(absents_text(round_info))}</p>" if absents_text(round_info) else "")
+        + "<p class='legend'>Pts = points avant la ronde. 1-F / F-1 : gain par forfait, F-F : double forfait.</p>"
     )
     state = "résultats" if round_info["completed"] else "appariements"
     return _page(
@@ -251,10 +275,12 @@ def pairings_html(tournament_status: dict, round_info: dict, auto_print: bool = 
 def _cell_html(cell: dict) -> str:
     if cell.get("bye"):
         return "<td class='rc bye' title='Exempt'>EXE</td>"
+    if cell.get("kind") in ("absent", "withdrawn", "late"):
+        return f"<td class='rc bye'>{absence_label(cell)}</td>"
     if cell.get("result") is None:
         return "<td class='rc'>—</td>"
     kind = {"+": "win", "-": "loss"}.get(cell["result"], "draw")
-    color = "B" if cell.get("color") == "W" else "N"
+    color = "F" if cell.get("kind") == "forfeit" else "B" if cell.get("color") == "W" else "N"
     sym = {"-": "−"}.get(cell["result"], cell["result"])
     return (
         f"<td class='rc {kind}'><span class='sym'>{sym}</span>"
@@ -290,7 +316,8 @@ def crosstable_html(tournament_status: dict, table: dict, auto_print: bool = Fal
     body = (
         f"<table><thead>{head}</thead><tbody>{''.join(lines)}</tbody></table>"
         "<p class='legend'>+ gain, = nulle, − perte · numéro = place de l'adversaire · "
-        "B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz tronqué"
+        "B = Blancs, N = Noirs, F = forfait · EXE = exempt · ABS = absent, OUT = retiré · "
+        "Tr. = Buchholz tronqué"
         + (" · Perf. = performance Elo" if "Perf" in keys else "")
         + ".</p>"
     )
@@ -305,17 +332,18 @@ def crosstable_html(tournament_status: dict, table: dict, auto_print: bool = Fal
 
 
 # ------------------------------------------------------- round-robin grid
-def grid_score_label(score: float | None) -> str:
-    """1, ½, 0 — or · for a game still to be played."""
+def grid_score_label(score: float | None, forfeit: bool = False) -> str:
+    """1, ½, 0 — 1F / 0F for a forfeit — or · for a game still to be played."""
     if score is None:
         return "·"
-    return {1.0: "1", 0.5: "½", 0.0: "0"}.get(float(score), f"{score:g}")
+    label = {1.0: "1", 0.5: "½", 0.0: "0"}.get(float(score), f"{score:g}")
+    return f"{label}F" if forfeit else label
 
 
 def _grid_cell_text(cell: list[dict] | None) -> str:
     if cell is None:
         return "×"
-    return " ".join(grid_score_label(g["score"]) for g in cell)
+    return " ".join(grid_score_label(g["score"], g.get("forfeit", False)) for g in cell)
 
 
 def results_grid_csv(grid: dict, show_club: bool = False) -> str:
@@ -360,7 +388,7 @@ def results_grid_html(tournament_status: dict, grid: dict, auto_print: bool = Fa
                 cells.append("<td class='gc self'></td>")
                 continue
             parts = "".join(
-                f"<span class='g{' todo' if g['score'] is None else ''}'>{grid_score_label(g['score'])}</span>"
+                f"<span class='g{' todo' if g['score'] is None else ''}'>{grid_score_label(g['score'], g.get('forfeit', False))}</span>"
                 for g in cell
             )
             cells.append(f"<td class='gc'>{parts}</td>")

@@ -11,8 +11,9 @@ export function fmtPts(value: number | null | undefined): string {
   return String(v)
 }
 
-export function resultLabel(whiteScore: number | null): string {
+export function resultLabel(whiteScore: number | string | null): string {
   if (whiteScore === null) return ''
+  if (typeof whiteScore === 'string') return whiteScore // forfeit: 1-F, F-1, F-F
   if (whiteScore === 1) return '1-0'
   if (whiteScore === 0) return '0-1'
   if (whiteScore === 0.5) return '½-½'

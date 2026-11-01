@@ -4,6 +4,7 @@ import { ApiError } from './api'
 import type {
   PlayerInput,
   ResultInput,
+  Score,
   TournamentConfigInput,
   TournamentState,
   TournamentStatus,
@@ -55,7 +56,7 @@ export default function App() {
   const [state, setState] = useState<TournamentState | null>(null)
   const [version, setVersion] = useState(0)
   const [pendingPlayers, setPendingPlayers] = useState<PlayerInput[]>([])
-  const [results, setResults] = useState<Record<number, number>>({})
+  const [results, setResults] = useState<Record<number, Score>>({})
   const [tab, setTab] = useState<Tab>('standings')
   const [dialog, setDialog] = useState<Dialog>(null)
   const [busy, setBusy] = useState(false)
@@ -257,7 +258,7 @@ export default function App() {
   }
 
   // Round-robin: one result saved at once (null clears it)
-  function handleSetGameResult(round: number, table: number, whiteScore: number | null) {
+  function handleSetGameResult(round: number, table: number, whiteScore: Score | null) {
     if (!id) return
     run(async () => {
       await api.setGameResult(id, round, table, whiteScore)
@@ -352,6 +353,80 @@ export default function App() {
       setNotice(
         `${players.length} joueur${players.length > 1 ? 's' : ''} importé${players.length > 1 ? 's' : ''}.` +
           (clubOn ? ' L’option « Afficher club / équipe » a été activée (vous pouvez la désactiver).' : ''),
+      )
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // ---- absences, late arrivals, withdrawals (Swiss and random systems)
+  function handleAbsence(name: string, value: number | null) {
+    if (!id) return
+    run(async () => {
+      await api.setAbsence(id, name, value)
+      await load(id)
+    })
+  }
+
+  async function handleWithdraw(name: string) {
+    if (!id || !status) return
+    const ok = await confirm({
+      title: `Retrait de ${name} ?`,
+      message: (
+        <>
+          <p>
+            {name} ne sera plus apparié à partir de la ronde {status.next_round} et marquera 0 point aux rondes
+            restantes. Il reste dans le classement.
+          </p>
+          {status.awaiting_results && (
+            <p>Sa partie de la ronde en cours doit quand même recevoir un résultat (un forfait si elle n'est pas jouée).</p>
+          )}
+          <p>Le retrait peut être annulé (« Réintégrer »).</p>
+        </>
+      ),
+      confirmLabel: 'Confirmer le retrait',
+      danger: true,
+    })
+    if (!ok) return
+    run(async () => {
+      await api.withdrawPlayer(id, name)
+      await load(id)
+      setNotice(`${name} s'est retiré du tournoi.`)
+    })
+  }
+
+  function handleCancelLate(name: string) {
+    if (!id) return
+    run(async () => {
+      await api.cancelLate(id, name)
+      await load(id)
+      setNotice(`L'inscription de ${name} a été annulée.`)
+    })
+  }
+
+  function handleReinstate(name: string) {
+    if (!id) return
+    run(async () => {
+      await api.reinstatePlayer(id, name)
+      await load(id)
+      setNotice(`${name} sera de nouveau apparié à partir de la ronde ${status?.next_round}.`)
+    })
+  }
+
+  async function handleAddLate(player: PlayerInput, missedValue: number): Promise<string | null> {
+    if (!id) return 'Aucun tournoi ouvert.'
+    try {
+      setBusy(true)
+      await api.addLatePlayers(id, [player], missedValue)
+      const s = await load(id)
+      setError(null)
+      setNotice(
+        s.pending_late.some((p) => p.name === player.name)
+          ? `${player.name} sera inscrit à la validation des résultats de la ronde ${s.status.current_round} et jouera à partir de la ronde ${s.status.next_round}.`
+          : `${player.name} est inscrit : il jouera à partir de la ronde ${s.status.next_round}.`,
       )
       return null
     } catch (e) {
@@ -459,7 +534,7 @@ export default function App() {
     : tab === 'grid'
       ? 'crosstable'
       : tab
-  const roundComplete = (r: { pairings: { is_bye: boolean; white_score: number | null }[] }) =>
+  const roundComplete = (r: { pairings: { is_bye: boolean; white_score: Score | null }[] }) =>
     r.pairings.every((p) => p.is_bye || p.white_score !== null)
 
   return (
@@ -724,6 +799,13 @@ export default function App() {
                       results={results}
                       editable
                       onSetResult={(table, score) => setResults((prev) => ({ ...prev, [table]: score }))}
+                      onClearResult={(table) =>
+                        setResults((prev) => {
+                          const next = { ...prev }
+                          delete next[table]
+                          return next
+                        })
+                      }
                       onSubmit={handleSubmitResults}
                       onPrint={() => openPrint(api.urls.printPairings(status.id, pendingRound.round))}
                       onCancelRound={() => handleRollback(status.completed_rounds)}
@@ -791,6 +873,21 @@ export default function App() {
               locked={status.started}
               showClub={status.show_club}
               maxPlayers={isRoundRobin ? MAX_ROUND_ROBIN_PLAYERS : null}
+              presence={
+                !status.finished && !isRoundRobin
+                  ? {
+                      nextRound: status.next_round,
+                      roundPending: status.awaiting_results,
+                      lastRound: status.awaiting_results && status.current_round >= status.total_rounds,
+                      pendingLate: state.pending_late ?? [],
+                      onCancelLate: handleCancelLate,
+                      onAbsence: handleAbsence,
+                      onWithdraw: handleWithdraw,
+                      onReinstate: handleReinstate,
+                      onAddLate: handleAddLate,
+                    }
+                  : null
+              }
               busy={busy}
               onToggleClub={handleToggleClub}
               onSetClub={handleSetClub}
@@ -958,7 +1055,7 @@ function RoundTrack({
 function CalendarTrack({
   rounds,
 }: {
-  rounds: { round: number; pairings: { is_bye: boolean; white_score: number | null }[] }[]
+  rounds: { round: number; pairings: { is_bye: boolean; white_score: Score | null }[] }[]
 }) {
   if (rounds.length === 0) return null
   const done = rounds.filter((r) => r.pairings.every((p) => p.is_bye || p.white_score !== null))

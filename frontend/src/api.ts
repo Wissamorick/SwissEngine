@@ -9,6 +9,7 @@ import type {
   RecentTournament,
   ResultInput,
   ResultsGrid,
+  Score,
   StandingEntry,
   TournamentConfigInput,
   TournamentState,
@@ -130,6 +131,28 @@ export function editPlayer(
   return post(`/tournament/${id}/player-edit`, { name, new_name: newName, elo })
 }
 
+// Players arriving after the start: each missed round is worth missedValue (0 or ½)
+export function addLatePlayers(id: string, players: PlayerInput[], missedValue: number): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/late-players`, { players, missed_value: missedValue })
+}
+
+/** Absence from the next round: 0 or ½ point; null cancels it */
+export function setAbsence(id: string, name: string, value: number | null): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/absence`, { name, value })
+}
+
+export function cancelLate(id: string, name: string): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/late-cancel`, { name })
+}
+
+export function withdrawPlayer(id: string, name: string): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/withdraw`, { name })
+}
+
+export function reinstatePlayer(id: string, name: string): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/reinstate`, { name })
+}
+
 // Round-robin calendar: every round at once, results in any order
 export function startSchedule(id: string): Promise<TournamentStatus> {
   return request(`/tournament/${id}/schedule`, { method: 'POST' })
@@ -139,7 +162,7 @@ export function setGameResult(
   id: string,
   round: number,
   table: number,
-  whiteScore: number | null,
+  whiteScore: Score | null,
 ): Promise<TournamentStatus> {
   return post(`/tournament/${id}/game-result`, { round, table, white_score: whiteScore })
 }

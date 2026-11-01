@@ -35,7 +35,8 @@ class AddPlayersRequest(BaseModel):
 
 class ResultInput(BaseModel):
     table: int = Field(ge=1)
-    white_score: float  # 1.0, 0.5 or 0.0 from White's perspective
+    # 1.0, 0.5 or 0.0 from White's perspective, or a forfeit "1-F", "F-1", "F-F"
+    white_score: float | str
 
 
 class EnterResultsRequest(BaseModel):
@@ -51,7 +52,13 @@ class PairingResponse(BaseModel):
     black_elo: int = 0
     white_pts: float = 0.0  # points before the round
     black_pts: float = 0.0
-    white_score: float | None = None  # result once entered (White's perspective)
+    white_score: float | str | None = None  # result once entered (White's perspective, or forfeit code)
+
+
+class AbsentEntry(BaseModel):
+    name: str
+    points: float  # points scored for the round
+    reason: Literal["absent", "withdrawn", "late"]
 
 
 class RoundInfo(BaseModel):
@@ -59,6 +66,7 @@ class RoundInfo(BaseModel):
     win_value: float
     completed: bool
     pairings: list[PairingResponse]
+    absent: list[AbsentEntry] = Field(default_factory=list)  # players not paired
 
 
 class StandingEntry(BaseModel):
@@ -69,11 +77,14 @@ class StandingEntry(BaseModel):
     pts: float
     color_diff: int
     tiebreaks: dict[str, float | None]  # None: no value (e.g. Perf at 100 %)
+    withdrawn: bool = False
 
 
 class CrosstableCell(BaseModel):
     round: int
     bye: bool
+    # "game", "forfeit", "bye", "absent", "withdrawn", "late"; None: no result yet
+    kind: str | None = None
     opponent: str | None
     opponent_rank: int | None
     color: str | None  # "W" / "B"
@@ -111,6 +122,8 @@ class TournamentStatus(BaseModel):
     show_club: bool = False
     # Above this number of rounds a full pairing may not exist (None: round-robin)
     max_safe_rounds: int | None = None
+    # number of the next round to pair (absences are declared for it)
+    next_round: int = 1
     # round-robin calendar: games with a result / all games (None otherwise)
     games_total: int | None = None
     games_played: int | None = None
@@ -125,6 +138,18 @@ class PlayerOut(BaseModel):
     name: str
     elo: int
     club: str | None = None
+    joined: int | None = None  # late arrival: first round the player could play
+    withdrawn_from: int | None = None  # withdrawal: first round no longer played
+    absent_next: float | None = None  # declared absent from the next round (0 or ½)
+
+
+class PendingLate(BaseModel):
+    """Player registered during a round: joins when its results are validated."""
+
+    name: str
+    elo: int
+    club: str | None = None
+    missed: float  # points of each missed round (0 or ½)
 
 
 class TournamentState(BaseModel):
@@ -132,6 +157,7 @@ class TournamentState(BaseModel):
 
     status: TournamentStatus
     players: list[PlayerOut]
+    pending_late: list[PendingLate] = Field(default_factory=list)
     rounds: list[RoundInfo]
     standings: list[StandingEntry]
 
@@ -159,13 +185,14 @@ class GameResultRequest(BaseModel):
 
     round: int = Field(ge=1)
     table: int = Field(ge=1)
-    white_score: float | None = None
+    white_score: float | str | None = None  # forfeit codes "1-F", "F-1", "F-F" accepted
 
 
 class GridGame(BaseModel):
     round: int
     color: str  # "W" / "B" for the row player
     score: float | None  # row player's result (1, 0.5, 0), None = not played yet
+    forfeit: bool = False
 
 
 class GridRow(BaseModel):
@@ -189,6 +216,20 @@ class ResultsGrid(BaseModel):
 
 class PlayerRemoveRequest(BaseModel):
     name: str = Field(min_length=1)
+
+
+class AbsenceRequest(BaseModel):
+    """Absence from the next round to pair: 0 or ½ point; None cancels it."""
+
+    name: str = Field(min_length=1)
+    value: float | None = None
+
+
+class LatePlayersRequest(BaseModel):
+    """Players registered after the start: each missed round is worth missed_value (0 or ½)."""
+
+    players: list[PlayerInput]
+    missed_value: float = 0.0
 
 
 class PlayerClubRequest(BaseModel):

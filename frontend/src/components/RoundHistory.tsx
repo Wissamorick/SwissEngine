@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ResultInput, RoundInfo } from '../types'
+import type { ResultInput, RoundInfo, Score } from '../types'
 import { Pairings } from './Pairings'
 import { Icon } from './Icon'
 import { EmptyState } from './Feedback'
@@ -20,8 +20,8 @@ interface Props {
   onCorrect: (round: number, results: ResultInput[], keepLaterRounds: boolean) => Promise<boolean>
 }
 
-function initialResults(round: RoundInfo): Record<number, number> {
-  const out: Record<number, number> = {}
+function initialResults(round: RoundInfo): Record<number, Score> {
+  const out: Record<number, Score> = {}
   for (const p of round.pairings) {
     if (!p.is_bye && p.white_score !== null) out[p.table] = p.white_score
   }
@@ -41,7 +41,7 @@ export function RoundHistory({
   const completed = rounds.filter((r) => r.completed)
   const [selected, setSelected] = useState(completed.length)
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState<Record<number, number>>({})
+  const [draft, setDraft] = useState<Record<number, Score>>({})
   const [keepLater, setKeepLater] = useState(true)
 
   useEffect(() => {
@@ -149,6 +149,13 @@ export function RoundHistory({
             results={draft}
             editable
             onSetResult={(table, score) => setDraft((prev) => ({ ...prev, [table]: score }))}
+            onClearResult={(table) =>
+              setDraft((prev) => {
+                const next = { ...prev }
+                delete next[table]
+                return next
+              })
+            }
             onSubmit={save}
             submitLabel={busy ? 'Enregistrement…' : 'Enregistrer les corrections'}
             extraActions={

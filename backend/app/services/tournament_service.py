@@ -19,6 +19,7 @@ from backend.app.models.schemas import (
     CreateTournamentRequest,
     Crosstable,
     EnterResultsRequest,
+    LatePlayersRequest,
     PairingResponse,
     PlayerOut,
     ResultsGrid,
@@ -116,6 +117,7 @@ def _status(tournament_id: str) -> TournamentStatus:
         player_count=raw["player_count"],
         show_club=raw["show_club"],
         max_safe_rounds=raw["max_safe_rounds"],
+        next_round=raw["next_round"],
         games_total=raw["games_total"],
         games_played=raw["games_played"],
         config=raw["config"],
@@ -186,6 +188,42 @@ def add_players(tournament_id: str, body: AddPlayersRequest) -> TournamentStatus
     return _status(tournament_id)
 
 
+def add_late_players(tournament_id: str, body: LatePlayersRequest) -> TournamentStatus:
+    """Players arriving after the start: paired from the next round on."""
+    tournament = get_tournament(tournament_id)
+    for p in body.players:
+        tournament.add_late_player(
+            {"Name": p.name.strip(), "Elo": p.elo, **({"Club": p.club.strip()} if p.club and p.club.strip() else {})},
+            body.missed_value,
+        )
+    _autosave(tournament_id, refresh_from=1)
+    return _status(tournament_id)
+
+
+def set_absence(tournament_id: str, name: str, value: float | None) -> TournamentStatus:
+    get_tournament(tournament_id).set_absence(name, value)
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
+def withdraw_player(tournament_id: str, name: str) -> TournamentStatus:
+    get_tournament(tournament_id).withdraw(name)
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
+def cancel_late(tournament_id: str, name: str) -> TournamentStatus:
+    get_tournament(tournament_id).cancel_late(name)
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
+def reinstate_player(tournament_id: str, name: str) -> TournamentStatus:
+    get_tournament(tournament_id).reinstate(name)
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
 def set_options(tournament_id: str, show_club: bool) -> TournamentStatus:
     get_tournament(tournament_id).show_club = show_club
     _autosave(tournament_id, refresh_from=1)
@@ -219,7 +257,7 @@ def end_tournament(tournament_id: str) -> TournamentStatus:
 
 
 def correct_results(
-    tournament_id: str, round_number: int, results: dict[int, float], keep_later_rounds: bool
+    tournament_id: str, round_number: int, results: dict[int, float | str], keep_later_rounds: bool
 ) -> TournamentStatus:
     """Fix the results of an already completed round (typo, wrong entry...)."""
     entry = _entry(tournament_id)
@@ -244,7 +282,9 @@ def start_schedule(tournament_id: str) -> TournamentStatus:
     return _status(tournament_id)
 
 
-def set_game_result(tournament_id: str, round_number: int, table: int, white_score: float | None) -> TournamentStatus:
+def set_game_result(
+    tournament_id: str, round_number: int, table: int, white_score: float | str | None
+) -> TournamentStatus:
     """Round-robin: enter, change or clear the result of one game, in any order."""
     get_tournament(tournament_id).set_result(round_number, table, white_score)
     _autosave(tournament_id)
@@ -283,6 +323,7 @@ def get_standings(tournament_id: str) -> list[StandingEntry]:
                 elo=int(player.get("Elo", 0)),
                 pts=float(player.get("pts", 0)),
                 color_diff=int(player.get("color_diff", 0)),
+                withdrawn=player.get("withdrawn_from") is not None,
                 tiebreaks={k: None if v is None else float(v) for k, v in tb.items()},
             )
         )
@@ -297,6 +338,7 @@ def get_rounds(tournament_id: str) -> list[RoundInfo]:
             win_value=r["win_value"],
             completed=r["completed"],
             pairings=[_pairing_out(p) for p in r["pairings"]],
+            absent=r["absent"],
         )
         for r in tournament.rounds()
     ]
@@ -309,12 +351,22 @@ def get_crosstable(tournament_id: str, after_round: int | None = None) -> Crosst
 
 def get_state(tournament_id: str) -> TournamentState:
     tournament = get_tournament(tournament_id)
+    # declared absences only (withdrawn players are shown as such)
+    absent = {} if tournament.is_round_robin else dict(tournament._next_absent)
     return TournamentState(
         status=_status(tournament_id),
         players=[
-            PlayerOut(name=p["Name"], elo=int(p.get("Elo", 0)), club=p.get("Club"))
+            PlayerOut(
+                name=p["Name"],
+                elo=int(p.get("Elo", 0)),
+                club=p.get("Club"),
+                joined=p.get("joined"),
+                withdrawn_from=p.get("withdrawn_from"),
+                absent_next=absent.get(p["Name"]),
+            )
             for p in tournament.players
         ],
+        pending_late=tournament.pending_late,
         rounds=get_rounds(tournament_id),
         standings=get_standings(tournament_id),
     )
@@ -404,6 +456,11 @@ __all__ = [
     "generate_round",
     "enter_results",
     "get_standings",
+    "add_late_players",
+    "set_absence",
+    "withdraw_player",
+    "reinstate_player",
+    "cancel_late",
     "get_rounds",
     "get_crosstable",
     "get_state",

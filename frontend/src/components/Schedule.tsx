@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { RoundInfo } from '../types'
+import type { RoundInfo, Score } from '../types'
 import { Pairings } from './Pairings'
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
   /** round to show first (first round with a missing result) */
   initialRound: number
   /** save one result at once; null clears it */
-  onSetResult: (round: number, table: number, whiteScore: number | null) => void
+  onSetResult: (round: number, table: number, whiteScore: Score | null) => void
   onPrint: (round: number) => void
 }
 
@@ -31,7 +31,7 @@ export function Schedule({ rounds, legRounds, double, initialRound, onSetResult,
 
   const games = (r: RoundInfo) => r.pairings.filter((p) => !p.is_bye)
   const entered = (r: RoundInfo) => games(r).filter((p) => p.white_score !== null).length
-  const results: Record<number, number> = {}
+  const results: Record<number, Score> = {}
   for (const p of games(round)) if (p.white_score !== null) results[p.table] = p.white_score
 
   const legs = double

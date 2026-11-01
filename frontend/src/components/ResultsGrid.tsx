@@ -13,12 +13,10 @@ interface Props {
   version: number
 }
 
-function scoreLabel(score: number | null): string {
+function scoreLabel(score: number | null, forfeit = false): string {
   if (score === null) return '·'
-  if (score === 1) return '1'
-  if (score === 0) return '0'
-  if (score === 0.5) return '½'
-  return fmtPts(score)
+  const label = score === 1 ? '1' : score === 0 ? '0' : score === 0.5 ? '½' : fmtPts(score)
+  return forfeit ? `${label}F` : label
 }
 
 function kind(score: number | null): string {
@@ -28,7 +26,7 @@ function kind(score: number | null): string {
 
 function gameTitle(g: GridGame, opponent: string): string {
   const color = g.color === 'W' ? 'Blancs' : 'Noirs'
-  const res = g.score === null ? 'à jouer' : scoreLabel(g.score)
+  const res = g.score === null ? 'à jouer' : g.forfeit ? `${scoreLabel(g.score)} par forfait` : scoreLabel(g.score)
   return `Ronde ${g.round}, ${color} contre ${opponent} : ${res}`
 }
 
@@ -112,7 +110,7 @@ export function ResultsGrid({ tournamentId, showClub, version }: Props) {
                           className={`g ${kind(g.score)}`}
                           title={gameTitle(g, data.rows[j].name)}
                         >
-                          {scoreLabel(g.score)}
+                          {scoreLabel(g.score, g.forfeit)}
                         </span>
                       ))}
                     </td>
@@ -133,7 +131,7 @@ export function ResultsGrid({ tournamentId, showClub, version }: Props) {
       <p className="hint table-note">
         Chaque case donne le résultat du joueur de la ligne contre le joueur de la colonne
         (numéro = place) : <b className="sym-win">1</b> gain · <b>½</b> nulle ·{' '}
-        <b className="sym-loss">0</b> perte · point = partie à jouer.
+        <b className="sym-loss">0</b> perte · F = forfait · point = partie à jouer.
         {data.legs === 2 && ' Aller-retour : partie aller à gauche, retour à droite.'} Survolez une
         case pour voir la ronde et la couleur.
         {data.tiebreak_keys.includes('Perf') && ' Perf. = performance Elo.'}

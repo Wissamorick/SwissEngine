@@ -66,7 +66,8 @@ class RoundRobinSystem(RoundBasedSystem):
     def _standings_order(self) -> list[dict]:
         return standings_roundrobin(self.players)
 
-    def _compute_raw_pairings(self) -> list[tuple[int, int]]:
+    def _compute_raw_pairings(self, active: list[int]) -> list[tuple[int, int]]:
+        # fixed calendar: nobody is ever absent in a round-robin
         return list(self._schedule[self._current_round - 1])
 
     def generate_round(self):

@@ -10,7 +10,9 @@
     ],
     "beta": 2,
     "bye_value": 0.5,
-    "seeding": true
+    "seeding": true,
+    "first_board_color": "random",
+    "double_round_robin": false
   },
   "options": {
     "show_club": false
@@ -92,7 +94,42 @@
           "white_score": 0.0
         }
       ]
+    },
+    {
+      "round": 2,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "e",
+          "black": "f",
+          "white_score": null
+        },
+        {
+          "table": 2,
+          "white": "b",
+          "black": "i",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "h",
+          "black": "g",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "A",
+          "black": "C",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "D",
+          "black": "j",
+          "white_score": null
+        }
+      ]
     }
   ],
-  "saved_at": "2026-10-11T18:40:31"
+  "saved_at": "2026-11-01T19:39:04"
 }

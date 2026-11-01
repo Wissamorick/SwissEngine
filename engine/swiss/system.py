@@ -22,17 +22,43 @@ class SwissSystem(RoundBasedSystem):
         if self.G.has_edge(a, b):
             self.G.remove_edge(a, b)
 
-    def _compute_raw_pairings(self) -> list[tuple[int, int]]:
+    def _on_player_added(self, idx: int) -> None:
+        # a new player (late arrival, or the bye) has met nobody yet
+        self.G.add_node(idx)
+        self.G.add_edges_from((j, idx) for j in range(idx))
+
+    def _on_player_removed(self, idx: int) -> None:
+        self.G.remove_node(idx)
+
+    def _compute_raw_pairings(self, active: list[int]) -> list[tuple[int, int]]:
+        if len(active) == self.n:
+            # everybody plays: the historical computation, on the full graph
+            return self._pair(self.G, self.players, list(range(self.n)))
+        # some players are absent: pair the others only (same weights,
+        # computed among the players present, as if the absent ones did not exist)
+        sub = [self.players[k] for k in active]
+        H = nx.Graph()
+        H.add_nodes_from(range(len(active)))
+        H.add_edges_from(
+            (a, b)
+            for a in range(len(active))
+            for b in range(a + 1, len(active))
+            if self.G.has_edge(active[a], active[b])
+        )
+        return self._pair(H, sub, active)
+
+    def _pair(self, G, players: list[dict], labels: list[int]) -> list[tuple[int, int]]:
+        """Maximum weight matching of G (nodes 0..m-1 = players), mapped back to labels."""
         system, _mixed = resolve_system(self.config.system, self._current_round)
 
         if self.config.seeding:
-            pairing_ranking = sorted(self.players, key=lambda x: (-x["pts"], -x["Elo"]))
+            pairing_ranking = sorted(players, key=lambda x: (-x["pts"], -x["Elo"]))
         else:
-            pairing_ranking = sorted(self.players, key=lambda x: (-x["pts"], -x["TB"]["Bu1"]))
+            pairing_ranking = sorted(players, key=lambda x: (-x["pts"], -x["TB"]["Bu1"]))
 
-        update_graph_weights(self.G, self.players, pairing_ranking, system, self.config.beta)
+        update_graph_weights(G, players, pairing_ranking, system, self.config.beta)
 
-        raw_pairings = MWM(self.G)
+        raw_pairings = [(labels[a], labels[b]) for a, b in MWM(G)]
 
         # Best boards first (same sort as TOURNAMENT_Swiss_MWM_decr)
         return sorted(

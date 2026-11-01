@@ -1,0 +1,771 @@
+{
+  "format": "swissengine-tournament",
+  "version": 2,
+  "name": "Test_01_11_26",
+  "config": {
+    "system": "dutch",
+    "rounds": 7,
+    "points": [
+      2.0,
+      2.0,
+      2.0
+    ],
+    "beta": 2,
+    "bye_value": 0.5,
+    "seeding": true,
+    "first_board_color": "random",
+    "double_round_robin": false
+  },
+  "options": {
+    "show_club": true
+  },
+  "players": [
+    {
+      "name": "Ribière, Damien",
+      "elo": 2234
+    },
+    {
+      "name": "Pheng, Wissam",
+      "elo": 2006,
+      "club": "Echallens"
+    },
+    {
+      "name": "Bigi, Filippo",
+      "elo": 1940
+    },
+    {
+      "name": "Parshikov, Tikhon",
+      "elo": 1920
+    },
+    {
+      "name": "Miesen, Sander",
+      "elo": 1914
+    },
+    {
+      "name": "Lippsmeier, Julien",
+      "elo": 1790
+    },
+    {
+      "name": "Bondaschi, Marco",
+      "elo": 1780
+    },
+    {
+      "name": "Harsanyi, Benedek",
+      "elo": 1727
+    },
+    {
+      "name": "Halilovic, Dario",
+      "elo": 1710
+    },
+    {
+      "name": "Bouhadra, Kalil",
+      "elo": 1680
+    },
+    {
+      "name": "How, Wei Bin",
+      "elo": 1640
+    },
+    {
+      "name": "Maranon, Leonardo",
+      "elo": 1640
+    },
+    {
+      "name": "Arpa, Enes Salih",
+      "elo": 1630
+    },
+    {
+      "name": "Ach, Maximilian",
+      "elo": 1440,
+      "withdrawn_from": 5
+    },
+    {
+      "name": "Timothée, Berthon",
+      "elo": 0
+    },
+    {
+      "name": "Delaroche, Louis",
+      "elo": 0
+    },
+    {
+      "name": "Akhtari, Maywand",
+      "elo": 0,
+      "withdrawn_from": 2
+    },
+    {
+      "name": "Sancenot, Thomas",
+      "elo": 0
+    },
+    {
+      "name": "Savini, Pedro",
+      "elo": 0
+    },
+    {
+      "name": "Rodriguez, Santiago",
+      "elo": 0
+    },
+    {
+      "name": "Nicod, Julien",
+      "elo": 0
+    },
+    {
+      "name": "Verclytte, Mathurin",
+      "elo": 0
+    },
+    {
+      "name": "Denot, Mael",
+      "elo": 0
+    },
+    {
+      "name": "Thonet, Amélie",
+      "elo": 0
+    },
+    {
+      "name": "Berlenghi, Viva",
+      "elo": 0
+    },
+    {
+      "name": "Yva, Arriver",
+      "elo": 0,
+      "club": "En retard Chess Club"
+    },
+    {
+      "name": "Allah, Bourre",
+      "elo": 1500,
+      "club": "En retard Chess club",
+      "joined": 2
+    },
+    {
+      "name": "Excusée, Sandra",
+      "elo": 1500,
+      "club": "En retard Chess club",
+      "joined": 2
+    }
+  ],
+  "next_absent": {
+    "Allah, Bourre": 0.0
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Ach, Maximilian",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Timothée, Berthon",
+          "black": "Pheng, Wissam",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Bigi, Filippo",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Akhtari, Maywand",
+          "black": "Parshikov, Tikhon",
+          "white_score": "F-1"
+        },
+        {
+          "table": 5,
+          "white": "Miesen, Sander",
+          "black": "Sancenot, Thomas",
+          "white_score": 1.0
+        },
+        {
+          "table": 6,
+          "white": "Savini, Pedro",
+          "black": "Lippsmeier, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 7,
+          "white": "Bondaschi, Marco",
+          "black": "Rodriguez, Santiago",
+          "white_score": 1.0
+        },
+        {
+          "table": 8,
+          "white": "Nicod, Julien",
+          "black": "Harsanyi, Benedek",
+          "white_score": 0.0
+        },
+        {
+          "table": 9,
+          "white": "Halilovic, Dario",
+          "black": "Verclytte, Mathurin",
+          "white_score": 1.0
+        },
+        {
+          "table": 10,
+          "white": "Denot, Mael",
+          "black": "Bouhadra, Kalil",
+          "white_score": 0.0
+        },
+        {
+          "table": 11,
+          "white": "How, Wei Bin",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 12,
+          "white": "Berlenghi, Viva",
+          "black": "Maranon, Leonardo",
+          "white_score": 0.0
+        },
+        {
+          "table": 13,
+          "white": "Arpa, Enes Salih",
+          "black": "bye",
+          "white_score": null
+        }
+      ],
+      "absent": {
+        "Yva, Arriver": 0.5,
+        "Allah, Bourre": 0.0,
+        "Excusée, Sandra": 0.5
+      }
+    },
+    {
+      "round": 2,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Harsanyi, Benedek",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Pheng, Wissam",
+          "black": "Halilovic, Dario",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Bouhadra, Kalil",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Parshikov, Tikhon",
+          "black": "How, Wei Bin",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Maranon, Leonardo",
+          "black": "Miesen, Sander",
+          "white_score": 0.0
+        },
+        {
+          "table": 6,
+          "white": "Savini, Pedro",
+          "black": "Bondaschi, Marco",
+          "white_score": 0.5
+        },
+        {
+          "table": 7,
+          "white": "Excusée, Sandra",
+          "black": "Arpa, Enes Salih",
+          "white_score": 0.0
+        },
+        {
+          "table": 8,
+          "white": "Lippsmeier, Julien",
+          "black": "Yva, Arriver",
+          "white_score": 1.0
+        },
+        {
+          "table": 9,
+          "white": "Verclytte, Mathurin",
+          "black": "Allah, Bourre",
+          "white_score": 0.0
+        },
+        {
+          "table": 10,
+          "white": "Ach, Maximilian",
+          "black": "Nicod, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 11,
+          "white": "Delaroche, Louis",
+          "black": "Denot, Mael",
+          "white_score": 1.0
+        },
+        {
+          "table": 12,
+          "white": "Thonet, Amélie",
+          "black": "Timothée, Berthon",
+          "white_score": 0.0
+        },
+        {
+          "table": 13,
+          "white": "Sancenot, Thomas",
+          "black": "Berlenghi, Viva",
+          "white_score": 0.0
+        },
+        {
+          "table": 14,
+          "white": "Rodriguez, Santiago",
+          "black": "bye",
+          "white_score": null
+        }
+      ],
+      "absent": {
+        "Akhtari, Maywand": 0.0
+      }
+    },
+    {
+      "round": 3,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Bigi, Filippo",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Miesen, Sander",
+          "black": "Pheng, Wissam",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Arpa, Enes Salih",
+          "black": "Parshikov, Tikhon",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "How, Wei Bin",
+          "black": "Savini, Pedro",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Bondaschi, Marco",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.0
+        },
+        {
+          "table": 6,
+          "white": "Allah, Bourre",
+          "black": "Harsanyi, Benedek",
+          "white_score": 0.0
+        },
+        {
+          "table": 7,
+          "white": "Halilovic, Dario",
+          "black": "Ach, Maximilian",
+          "white_score": 1.0
+        },
+        {
+          "table": 8,
+          "white": "Berlenghi, Viva",
+          "black": "Bouhadra, Kalil",
+          "white_score": 0.0
+        },
+        {
+          "table": 9,
+          "white": "Timothée, Berthon",
+          "black": "Maranon, Leonardo",
+          "white_score": 0.0
+        },
+        {
+          "table": 10,
+          "white": "Rodriguez, Santiago",
+          "black": "Delaroche, Louis",
+          "white_score": 0.0
+        },
+        {
+          "table": 11,
+          "white": "Yva, Arriver",
+          "black": "Excusée, Sandra",
+          "white_score": 0.0
+        },
+        {
+          "table": 12,
+          "white": "Verclytte, Mathurin",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 13,
+          "white": "Denot, Mael",
+          "black": "Sancenot, Thomas",
+          "white_score": 0.5
+        },
+        {
+          "table": 14,
+          "white": "Nicod, Julien",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        }
+      ],
+      "absent": {
+        "Akhtari, Maywand": 0.0
+      }
+    },
+    {
+      "round": 4,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Pheng, Wissam",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Parshikov, Tikhon",
+          "black": "Savini, Pedro",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Harsanyi, Benedek",
+          "black": "Bigi, Filippo",
+          "white_score": 0.5
+        },
+        {
+          "table": 4,
+          "white": "Bouhadra, Kalil",
+          "black": "Miesen, Sander",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Lippsmeier, Julien",
+          "black": "How, Wei Bin",
+          "white_score": 0.0
+        },
+        {
+          "table": 6,
+          "white": "Maranon, Leonardo",
+          "black": "Halilovic, Dario",
+          "white_score": 0.5
+        },
+        {
+          "table": 7,
+          "white": "Delaroche, Louis",
+          "black": "Arpa, Enes Salih",
+          "white_score": 0.0
+        },
+        {
+          "table": 8,
+          "white": "Excusée, Sandra",
+          "black": "Bondaschi, Marco",
+          "white_score": 0.0
+        },
+        {
+          "table": 9,
+          "white": "Allah, Bourre",
+          "black": "Timothée, Berthon",
+          "white_score": 1.0
+        },
+        {
+          "table": 10,
+          "white": "Ach, Maximilian",
+          "black": "Berlenghi, Viva",
+          "white_score": 0.5
+        },
+        {
+          "table": 11,
+          "white": "Sancenot, Thomas",
+          "black": "Nicod, Julien",
+          "white_score": 0.0
+        },
+        {
+          "table": 12,
+          "white": "Rodriguez, Santiago",
+          "black": "Denot, Mael",
+          "white_score": 1.0
+        },
+        {
+          "table": 13,
+          "white": "Yva, Arriver",
+          "black": "Verclytte, Mathurin",
+          "white_score": 1.0
+        },
+        {
+          "table": 14,
+          "white": "Thonet, Amélie",
+          "black": "bye",
+          "white_score": null
+        }
+      ],
+      "absent": {
+        "Akhtari, Maywand": 0.0
+      }
+    },
+    {
+      "round": 5,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Parshikov, Tikhon",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "How, Wei Bin",
+          "black": "Pheng, Wissam",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Miesen, Sander",
+          "black": "Harsanyi, Benedek",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Bigi, Filippo",
+          "black": "Maranon, Leonardo",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Halilovic, Dario",
+          "black": "Bouhadra, Kalil",
+          "white_score": 1.0
+        },
+        {
+          "table": 6,
+          "white": "Arpa, Enes Salih",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.5
+        },
+        {
+          "table": 7,
+          "white": "Bondaschi, Marco",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 8,
+          "white": "Savini, Pedro",
+          "black": "Allah, Bourre",
+          "white_score": 1.0
+        },
+        {
+          "table": 9,
+          "white": "Nicod, Julien",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 10,
+          "white": "Timothée, Berthon",
+          "black": "Rodriguez, Santiago",
+          "white_score": 1.0
+        },
+        {
+          "table": 11,
+          "white": "Denot, Mael",
+          "black": "Yva, Arriver",
+          "white_score": 0.0
+        },
+        {
+          "table": 12,
+          "white": "Verclytte, Mathurin",
+          "black": "Sancenot, Thomas",
+          "white_score": 0.5
+        }
+      ],
+      "absent": {
+        "Thonet, Amélie": 0.0,
+        "Excusée, Sandra": 0.5,
+        "Ach, Maximilian": 0.0,
+        "Akhtari, Maywand": 0.0
+      }
+    },
+    {
+      "round": 6,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Miesen, Sander",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Pheng, Wissam",
+          "black": "Parshikov, Tikhon",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Halilovic, Dario",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "How, Wei Bin",
+          "black": "Bondaschi, Marco",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Harsanyi, Benedek",
+          "black": "Savini, Pedro",
+          "white_score": 0.0
+        },
+        {
+          "table": 6,
+          "white": "Maranon, Leonardo",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.0
+        },
+        {
+          "table": 7,
+          "white": "Bouhadra, Kalil",
+          "black": "Arpa, Enes Salih",
+          "white_score": 1.0
+        },
+        {
+          "table": 8,
+          "white": "Delaroche, Louis",
+          "black": "Nicod, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 9,
+          "white": "Allah, Bourre",
+          "black": "Excusée, Sandra",
+          "white_score": 0.5
+        },
+        {
+          "table": 10,
+          "white": "Yva, Arriver",
+          "black": "Timothée, Berthon",
+          "white_score": 0.0
+        },
+        {
+          "table": 11,
+          "white": "Berlenghi, Viva",
+          "black": "Verclytte, Mathurin",
+          "white_score": 1.0
+        },
+        {
+          "table": 12,
+          "white": "Sancenot, Thomas",
+          "black": "Rodriguez, Santiago",
+          "white_score": 0.0
+        },
+        {
+          "table": 13,
+          "white": "Thonet, Amélie",
+          "black": "Denot, Mael",
+          "white_score": 0.0
+        }
+      ],
+      "absent": {
+        "Ach, Maximilian": 0.0,
+        "Akhtari, Maywand": 0.0
+      }
+    },
+    {
+      "round": 7,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Bigi, Filippo",
+          "black": "Pheng, Wissam",
+          "white_score": null
+        },
+        {
+          "table": 2,
+          "white": "Savini, Pedro",
+          "black": "Ribière, Damien",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "Miesen, Sander",
+          "black": "How, Wei Bin",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "Lippsmeier, Julien",
+          "black": "Halilovic, Dario",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "Parshikov, Tikhon",
+          "black": "Delaroche, Louis",
+          "white_score": null
+        },
+        {
+          "table": 6,
+          "white": "Bondaschi, Marco",
+          "black": "Bouhadra, Kalil",
+          "white_score": null
+        },
+        {
+          "table": 7,
+          "white": "Arpa, Enes Salih",
+          "black": "Harsanyi, Benedek",
+          "white_score": null
+        },
+        {
+          "table": 8,
+          "white": "Excusée, Sandra",
+          "black": "Maranon, Leonardo",
+          "white_score": null
+        },
+        {
+          "table": 9,
+          "white": "Nicod, Julien",
+          "black": "Timothée, Berthon",
+          "white_score": null
+        },
+        {
+          "table": 10,
+          "white": "Berlenghi, Viva",
+          "black": "Allah, Bourre",
+          "white_score": null
+        },
+        {
+          "table": 11,
+          "white": "Rodriguez, Santiago",
+          "black": "Yva, Arriver",
+          "white_score": null
+        },
+        {
+          "table": 12,
+          "white": "Verclytte, Mathurin",
+          "black": "Denot, Mael",
+          "white_score": null
+        },
+        {
+          "table": 13,
+          "white": "Thonet, Amélie",
+          "black": "Sancenot, Thomas",
+          "white_score": null
+        }
+      ],
+      "absent": {
+        "Ach, Maximilian": 0.0,
+        "Akhtari, Maywand": 0.0
+      }
+    }
+  ],
+  "saved_at": "2026-11-01T19:35:23"
+}

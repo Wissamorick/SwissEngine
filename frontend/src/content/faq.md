@@ -118,7 +118,7 @@ Tout reste sur votre ordinateur : rien n'est envoyé sur internet.
 
 ### Je me suis trompé dans un résultat. Comment corriger ? {#erreur}
 
-**Ronde en cours :** cliquez simplement sur le bon résultat (1-0, ½-½ ou 0-1) avant de valider.
+**Ronde en cours :** cliquez simplement sur le bon résultat (1-0, ½-½, 0-1 ou un forfait) avant de valider. Recliquez sur un résultat pour l'effacer.
 
 **Round-robin :** il n'y a rien à valider. Dans le calendrier, cliquez sur le bon résultat dans n'importe quelle ronde : il remplace l'ancien. Recliquez sur le résultat choisi pour l'effacer (partie pas encore jouée).
 
@@ -141,7 +141,7 @@ La grille américaine résume tout le tournoi sur une page : une ligne par joueu
 - `5` : contre le joueur classé 5^e^ ;
 - `N` : avec les Noirs (`B` = Blancs).
 
-`EXE` signifie « exempt » : le joueur n'a pas joué cette ronde (nombre impair de joueurs). Dans l'application, cliquez sur un joueur : sa ligne passe en noir et ses adversaires sont surlignés selon le résultat, en vert ceux qu'il a battus, en rouge ceux qui l'ont battu, en gris foncé les nulles (la case de leur rencontre est encadrée) ; les autres joueurs s'estompent. Cliquez à nouveau ou sur « Effacer » pour revenir à la grille complète. Vous pouvez afficher la grille après n'importe quelle ronde.
+`EXE` signifie « exempt » : le joueur n'a pas joué cette ronde (nombre impair de joueurs). `ABS` : absent (`ABS ½` s'il a reçu ½ point), `OUT` : retiré du tournoi, `F` à la place de la couleur : [forfait](#forfaits). Dans l'application, cliquez sur un joueur : sa ligne passe en noir et ses adversaires sont surlignés selon le résultat, en vert ceux qu'il a battus, en rouge ceux qui l'ont battu, en gris foncé les nulles (la case de leur rencontre est encadrée) ; les autres joueurs s'estompent. Cliquez à nouveau ou sur « Effacer » pour revenir à la grille complète. Vous pouvez afficher la grille après n'importe quelle ronde.
 
 ### Comment lire la grille d'un round-robin ? {#grille-rr}
 
@@ -535,6 +535,7 @@ Appariement : Le choix de qui joue contre qui lors d'une ronde.
 Groupe de points : Les joueurs qui ont le même nombre de points à un moment donné.
 Elo : Classement qui estime le niveau d'un joueur à partir de ses résultats passés (plus il est élevé, plus le joueur est fort).
 Exempt (bye) : Joueur qui ne joue pas une ronde faute d'adversaire (nombre impair).
+Forfait : Partie non jouée parce qu'un joueur (ou les deux) ne s'est pas présenté. Notée 1-F, F-1 ou F-F.
 Départage : Critère qui sépare les joueurs à égalité de points.
 Performance (Perf.) : L'Elo qu'il aurait fallu avoir pour marquer exactement son score contre ses adversaires du tournoi.
 Grille américaine : Tableau récapitulatif de tous les résultats, une ligne par joueur.
@@ -547,9 +548,64 @@ Gambit suisse : Stratégie qui consiste à perdre (ou annuler) au début pour af
 
 Oui : e-sport, jeux de société, tennis de table, badminton, concours de débat… Tout jeu à deux où toutes les parties d'une ronde peuvent se jouer en même temps. Sans classement de niveau, mettez 0 comme Elo et préférez **Swiss Random 2**. Si la notion de couleur ou de côté n'a pas d'importance, augmentez [Beta](#opt-beta). L'option [club / équipe](#club) permet d'afficher l'équipe de chaque participant.
 
-### Un joueur abandonne ou arrive en retard : que faire ? {#abandon}
+### Un joueur est absent, abandonne ou arrive en retard : que faire ? {#abandon}
 
-Ce n'est pas encore possible : pour l'instant, la liste des joueurs est figée dès la première ronde. La gestion des absents, des abandons et des arrivées en cours de tournoi est prévue dans une prochaine version.
+Tout se gère dans la carte **Joueurs** (systèmes suisses et Aléatoire). Les absences peuvent être déclarées dès la ronde 1 ; le retrait et l'arrivée en cours de tournoi apparaissent une fois le tournoi commencé. En résumé :
+
+- **Absent à une ronde** : choisissez « Absent (0) » ou « Absent (½) » à côté de son nom, *avant* de générer la ronde (voir [Que signifie « Absent » ?](#absent)).
+- **Abandon** : bouton **Retrait** (voir [Que fait le bouton « Retrait » ?](#retrait)).
+- **Arrivée en retard** : formulaire **Arrivée en cours de tournoi** (voir [Comment inscrire un retardataire ?](#retard)).
+- **Joueur apparié qui ne vient pas** : saisissez un [forfait](#forfaits) pour sa partie, ou annulez les appariements de la ronde, déclarez-le absent et générez à nouveau.
+
+En round-robin, le calendrier est fixe : une partie qui n'a pas lieu se saisit comme un forfait.
+
+### Que signifie « Absent » ? Pourquoi 0 ou ½ point ? {#absent}
+
+Un joueur **absent** ne joue pas la ronde : il n'est pas apparié, et les autres joueurs sont appariés entre eux comme s'il n'existait pas pour cette ronde. Il garde sa place dans le tournoi et sera apparié normalement à la ronde suivante : une absence ne vaut que pour **une ronde**. Elle se déclare avant de générer la ronde ; la ligne « Ronde N » en haut de la carte indique pour quelle ronde.
+
+Le choix entre 0 et ½ point dépend du règlement de votre tournoi :
+
+- **Absent (0)** : le joueur ne marque rien. C'est le choix par défaut, en particulier pour une absence non prévenue.
+- **Absent (½)** : le joueur marque la moitié des points de la ronde, comme une nulle. Aux échecs, de nombreux tournois accordent ce « bye demandé » à un joueur qui prévient à l'avance qu'il ne pourra pas jouer une ronde, souvent avec une limite (par exemple une seule fois par tournoi, et pas aux dernières rondes). SwissEngine ne fixe pas de limite : c'est à vous d'appliquer votre règlement.
+
+Une absence n'est pas une exemption : elle n'empêche pas le joueur d'être exempt plus tard, et si le nombre de joueurs présents est impair, un autre joueur est exempt comme d'habitude.
+
+Oubli de déclarer une absence ? Si la ronde est déjà générée, saisissez un forfait pour la partie du joueur absent (son adversaire gagne), ou cliquez sur **Annuler les appariements** : les absences déjà déclarées sont conservées, il suffit d'ajouter l'oubli et de générer à nouveau.
+
+### Que fait le bouton « Retrait » ? {#retrait}
+
+**Retrait** sert quand un joueur quitte définitivement le tournoi. Il n'est plus apparié à partir de la ronde suivante et marque 0 point à chaque ronde restante. Il reste dans le classement, avec la mention « retiré », et ses parties déjà jouées restent valables pour lui comme pour ses adversaires.
+
+- Si le joueur se retire pendant une ronde, sa partie de cette ronde doit quand même recevoir un résultat : un forfait si elle n'est pas jouée.
+- Le retrait peut être annulé avec **Réintégrer** : le joueur est de nouveau apparié à partir de la ronde suivante, et les rondes manquées comptent comme des absences à 0 point.
+- À ne pas confondre avec la croix qui **supprime** un joueur de la liste : elle n'existe qu'avant la première ronde, pour un joueur inscrit par erreur.
+
+### Comment inscrire un retardataire ? {#retard}
+
+Avec le formulaire **Arrivée en cours de tournoi** de la carte Joueurs. Le joueur est apparié à partir de la ronde suivante ; chaque ronde qu'il a manquée compte comme une absence, à 0 ou ½ point selon votre choix (le même pour toutes ses rondes manquées).
+
+Si une ronde est en cours, le joueur est mis en attente et inscrit à la validation de ses résultats : cette ronde compte alors aussi comme manquée. L'inscription en attente peut être annulée. Aucune arrivée n'est possible pendant la dernière ronde, puisque le joueur ne pourrait plus jouer.
+
+Si vous savez dès le départ qu'un joueur arrivera en retard, vous pouvez aussi l'inscrire normalement et le déclarer absent aux premières rondes : le résultat est le même.
+
+### Absences, retraits, retards : ce qu'il faut savoir {#absences-impacts}
+
+- **Classement** : les points d'une absence (0 ou ½) comptent comme les autres. Avec ½, le joueur est apparié ensuite avec les joueurs de son nouveau total de points.
+- **Buchholz** : une ronde non jouée (absence, retrait, ronde manquée par un retardataire, exemption) compte comme un adversaire à 0 point. Elle fait donc baisser le Buchholz du joueur absent. Le Buchholz tronqué (Tr.) retire la plus petite contribution : avec une seule ronde non jouée, c'est elle qui est retirée à la place de l'adversaire le plus faible, ce qui pénalise peu ; à partir de la deuxième, la pénalité est réelle. Pour ses adversaires, le joueur absent compte simplement avec son score final, points d'absence compris.
+- **Couleurs et performance** : une ronde non jouée ne change ni l'équilibre des couleurs ni la [performance](#performance), calculée sur les parties jouées.
+- **Appariements** : avec beaucoup d'absents, les joueurs présents se sont plus vite tous rencontrés. Si aucun appariement complet n'existe, rien n'est enregistré et un message l'indique : vous pouvez modifier les absences ou terminer le tournoi. Si cela arrive à la première ronde, le tournoi ne démarre pas et les inscriptions restent ouvertes.
+- **Grille américaine** : `ABS` = absent (`ABS ½` avec ½ point), `OUT` = retiré.
+- **Revenir en arrière** : annuler des appariements ou revenir à une ronde précédente conserve les absences déclarées pour la ronde à refaire, les retraits et les retardataires.
+
+### Comment saisir un forfait ? {#forfaits}
+
+À côté des boutons de résultat, le menu **Forfait…** propose :
+
+- **1-F** : les Noirs ne se sont pas présentés, les Blancs gagnent la partie ;
+- **F-1** : les Blancs ne se sont pas présentés, les Noirs gagnent ;
+- **F-F** : double forfait, aucun des deux ne marque.
+
+Un forfait rapporte les points d'une victoire au joueur présent. La partie n'ayant pas été jouée, elle ne compte pas pour les couleurs ni pour la [performance](#performance). Pour le reste, elle compte comme une rencontre : les deux joueurs ne seront plus appariés ensemble, et chacun compte l'autre dans son Buchholz. Dans la grille américaine, un forfait s'écrit avec un F à la place de la couleur (`+5F`).
 
 ### Peut-on « tricher » en perdant exprès au début ? {#gambit}
 

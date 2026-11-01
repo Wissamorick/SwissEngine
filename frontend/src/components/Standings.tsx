@@ -39,7 +39,10 @@ export function Standings({ standings, showClub }: Props) {
           {standings.map((s) => (
             <tr key={s.name}>
               <td className="num rank">{s.rank}</td>
-              <td className="player">{s.name}</td>
+              <td className="player">
+                {s.name}
+                {s.withdrawn && <span className="badge badge-muted">retiré</span>}
+              </td>
               {showClub && <td className="club col-club">{s.club ?? ''}</td>}
               <td className="num muted col-elo">{s.elo}</td>
               <td className="num col-points">{fmtPts(s.pts)}</td>

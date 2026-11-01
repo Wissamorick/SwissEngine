@@ -43,6 +43,11 @@ td.rc.bye { color: #78726b; font-size: 12px; letter-spacing: 0.04em; }
 .toolbar { margin-bottom: 16px; }
 .toolbar button { padding: 0 14px; height: 32px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   color: #fff; background: #141414; border: 1px solid #141414; border-radius: 4px; box-shadow: 3px 3px 0 #cc0000; }
+td.gc { text-align: center; white-space: nowrap; padding: 4px 3px; font-variant-numeric: tabular-nums; }
+td.gc.self { background: #2b2b2b !important; }
+td.gc .g + .g { margin-left: 6px; }
+td.gc .g.todo { color: #aaa; }
+th.gn { text-align: center; width: 34px; }
 @media print {
   body { margin: 0; }
   .toolbar { display: none; }
@@ -61,7 +66,7 @@ td.rc.bye { color: #78726b; font-size: 12px; letter-spacing: 0.04em; }
 <h2>Ronde 1 — résultats</h2>
 <div class="meta">Mixte (Swiss Dutch puis Swiss Burstein) · 10 joueurs · 5 rondes</div>
 </header>
-<table><thead><tr><th>Table</th><th>Pts</th><th>Blancs</th><th>Elo</th><th>Résultat</th><th>Elo</th><th>Noirs</th><th>Pts</th></tr></thead><tbody><tr><td class='rank'>1</td><td class='center'>0</td><td class='name'>f</td><td class='elo'>1500</td><td class='res'>1-0</td><td class='elo'>1500</td><td class='name'>A</td><td class='center'>0</td></tr><tr><td class='rank'>2</td><td class='center'>0</td><td class='name'>g</td><td class='elo'>1500</td><td class='res'>½-½</td><td class='elo'>1500</td><td class='name'>b</td><td class='center'>0</td></tr><tr><td class='rank'>3</td><td class='center'>0</td><td class='name'>C</td><td class='elo'>1500</td><td class='res'>½-½</td><td class='elo'>1500</td><td class='name'>h</td><td class='center'>0</td></tr><tr><td class='rank'>4</td><td class='center'>0</td><td class='name'>i</td><td class='elo'>1500</td><td class='res'>1-0</td><td class='elo'>1500</td><td class='name'>D</td><td class='center'>0</td></tr><tr><td class='rank'>5</td><td class='center'>0</td><td class='name'>j</td><td class='elo'>1500</td><td class='res'>0-1</td><td class='elo'>1500</td><td class='name'>e</td><td class='center'>0</td></tr></tbody></table><p class='legend'>Pts = points avant la ronde.</p>
+<table><thead><tr><th>Table</th><th>Pts</th><th>Blancs</th><th>Elo</th><th>Résultat</th><th>Elo</th><th>Noirs</th><th>Pts</th></tr></thead><tbody><tr><td class='rank'>1</td><td class='center'>0</td><td class='name'>f</td><td class='elo'>1500</td><td class='res'>1-0</td><td class='elo'>1500</td><td class='name'>A</td><td class='center'>0</td></tr><tr><td class='rank'>2</td><td class='center'>0</td><td class='name'>g</td><td class='elo'>1500</td><td class='res'>½-½</td><td class='elo'>1500</td><td class='name'>b</td><td class='center'>0</td></tr><tr><td class='rank'>3</td><td class='center'>0</td><td class='name'>C</td><td class='elo'>1500</td><td class='res'>½-½</td><td class='elo'>1500</td><td class='name'>h</td><td class='center'>0</td></tr><tr><td class='rank'>4</td><td class='center'>0</td><td class='name'>i</td><td class='elo'>1500</td><td class='res'>1-0</td><td class='elo'>1500</td><td class='name'>D</td><td class='center'>0</td></tr><tr><td class='rank'>5</td><td class='center'>0</td><td class='name'>j</td><td class='elo'>1500</td><td class='res'>0-1</td><td class='elo'>1500</td><td class='name'>e</td><td class='center'>0</td></tr></tbody></table><p class='legend'>Pts = points avant la ronde. 1-F / F-1 : gain par forfait, F-F : double forfait.</p>
 
 </body>
 </html>

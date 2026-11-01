@@ -20,11 +20,24 @@ export interface PlayerInput {
   name: string
   elo: number
   club?: string | null
+  /** late arrival: first round the player could play (state only) */
+  joined?: number | null
+  /** withdrawal: first round no longer played (state only) */
+  withdrawn_from?: number | null
+  /** declared absent from the next round: points of the absence, 0 or ½ (state only) */
+  absent_next?: number | null
 }
+
+/** Forfeits, written from White's side: Black forfeited, White forfeited, both */
+export const FORFEIT_CODES = ['1-F', 'F-1', 'F-F'] as const
+export type ForfeitCode = (typeof FORFEIT_CODES)[number]
+
+/** Result from White's side: 1, 0.5, 0, or a forfeit code */
+export type Score = number | ForfeitCode
 
 export interface ResultInput {
   table: number
-  white_score: number
+  white_score: Score
 }
 
 export interface TournamentStatus {
@@ -41,6 +54,8 @@ export interface TournamentStatus {
   show_club: boolean
   /** above this number of rounds a full pairing may not exist (null: round-robin) */
   max_safe_rounds: number | null
+  /** number of the next round to pair (absences are declared for it) */
+  next_round: number
   config: Omit<TournamentConfigInput, 'name' | 'show_club'>
   save_dir: string | null
   last_saved: string | null
@@ -60,8 +75,16 @@ export interface Pairing {
   /** points before the round */
   white_pts: number
   black_pts: number
-  /** result from White's perspective, null until entered */
-  white_score: number | null
+  /** result from White's perspective (or forfeit code), null until entered */
+  white_score: Score | null
+}
+
+/** A player not paired in a round */
+export interface AbsentEntry {
+  name: string
+  /** points scored for the round */
+  points: number
+  reason: 'absent' | 'withdrawn' | 'late'
 }
 
 export interface RoundInfo {
@@ -69,6 +92,7 @@ export interface RoundInfo {
   win_value: number
   completed: boolean
   pairings: Pairing[]
+  absent: AbsentEntry[]
 }
 
 export interface StandingEntry {
@@ -79,11 +103,14 @@ export interface StandingEntry {
   pts: number
   color_diff: number
   tiebreaks: Record<string, number | null>
+  withdrawn?: boolean
 }
 
 export interface CrosstableCell {
   round: number
   bye: boolean
+  /** null: no result yet */
+  kind?: 'game' | 'forfeit' | 'bye' | 'absent' | 'withdrawn' | 'late' | null
   opponent: string | null
   opponent_rank: number | null
   color: 'W' | 'B' | null
@@ -114,6 +141,8 @@ export interface GridGame {
   color: 'W' | 'B'
   /** row player's result, null until entered */
   score: number | null
+  /** the game was not played (forfeit) */
+  forfeit?: boolean
 }
 
 export interface GridRow {
@@ -136,9 +165,19 @@ export interface ResultsGrid {
   rows: GridRow[]
 }
 
+/** Player registered during a round: joins when its results are validated */
+export interface PendingLate {
+  name: string
+  elo: number
+  club: string | null
+  /** points of each missed round (0 or ½) */
+  missed: number
+}
+
 export interface TournamentState {
   status: TournamentStatus
   players: PlayerInput[]
+  pending_late: PendingLate[]
   rounds: RoundInfo[]
   standings: StandingEntry[]
 }
