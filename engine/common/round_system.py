@@ -172,7 +172,8 @@ class RoundBasedSystem(BaseTournamentSystem):
             if self.players[a]["Name"] == "bye":
                 a, b = b, a
             if self.players[b]["Name"] == "bye":
-                self.results[a][b] = self.config.bye_value * self._win_value
+                # += : in a double round-robin a player is exempt once per leg
+                self.results[a][b] += self.config.bye_value * self._win_value
                 w_elo, w_pts = self._player_snapshot(a)
                 pairings.append(
                     Pairing(
@@ -238,8 +239,10 @@ class RoundBasedSystem(BaseTournamentSystem):
         for pairing in pending_games:
             res = by_table[pairing.table].white_score
             a, b = pairing.white_index, pairing.black_index
-            self.results[a][b] = res * self._win_value
-            self.results[b][a] = (1 - res) * self._win_value
+            # += : in a double round-robin the same two players meet twice
+            # (Swiss systems never repeat a pair, so this changes nothing there)
+            self.results[a][b] += res * self._win_value
+            self.results[b][a] += (1 - res) * self._win_value
 
         self._refresh_scores_and_tiebreaks()
         self._pending_pairings = []

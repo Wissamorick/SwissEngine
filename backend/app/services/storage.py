@@ -110,6 +110,13 @@ def save_tournament(
         _write_text(rounds_dir / f"{stem}.html", exports.pairings_html(status, info))
         _write_text(rounds_dir / f"{stem}.csv", exports.pairings_csv(info))
 
+    if tournament.is_round_robin and tournament.started:
+        # round-robin: one results table (double entry) for the whole tournament
+        grid = tournament.results_grid()
+        _write_text(rounds_dir / "grille_resultats.html", exports.results_grid_html(status, grid))
+        _write_text(rounds_dir / "grille_resultats.csv", exports.results_grid_csv(grid, tournament.show_club))
+        completed = 0  # no "grille américaine" files (older ones are archived)
+
     # Crosstables: recompute the latest one, and any that is missing.
     for k in range(1, completed + 1):
         stem = f"ronde_{k:02d}_grille_americaine"

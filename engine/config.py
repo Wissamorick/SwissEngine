@@ -21,6 +21,10 @@ class TournamentConfig:
         Round 1: color of the higher-ranked player on table 1, "white",
         "black" or "random" (drawn by lot). Colors then alternate from one
         table to the next (FIDE practice), see RoundBasedSystem.
+    double_round_robin:
+        Round-robin only: play every game twice ("aller-retour"). All the
+        first-leg rounds are played first, then the same rounds again in the
+        same order with the colors reversed.
     """
 
     system: str = "dutch"
@@ -30,6 +34,7 @@ class TournamentConfig:
     bye_value: float = 0.5
     seeding: bool = True
     first_board_color: str = "random"
+    double_round_robin: bool = False
 
     def __post_init__(self) -> None:
         from engine.common.colors import FIRST_BOARD_COLORS

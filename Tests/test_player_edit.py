@@ -76,7 +76,8 @@ def pairs_played(t: Tournament) -> list[frozenset[str]]:
 
 def scores(t: Tournament) -> dict[str, tuple]:
     return {
-        p["Name"]: (p["pts"], tuple(sorted(p["TB"].items())), p["color_diff"])
+        # the performance depends on the opponents' Elo: left out here
+        p["Name"]: (p["pts"], tuple(sorted((k, v) for k, v in p["TB"].items() if k != "Perf")), p["color_diff"])
         for p in t.get_standings()
     }
 
@@ -114,7 +115,7 @@ class RenameTests(unittest.TestCase):
         # Save / reload round-trip
         self.assertEqual(Tournament.from_dict(t2.to_dict()).to_dict(), t2.to_dict())
         # The tournament can go on
-        t2.enter_results([GameResult(p.table, 1.0) for p in t2._rounds[-1]["pairings"] if not p.is_bye])
+        t2.enter_results([GameResult(p.table, 1.0) for p in t2._rounds[t2.current_round - 1]["pairings"] if not p.is_bye])
         play_round(t2, rng)
         self.assertEqual(t2.completed_rounds, 5)
 
@@ -241,9 +242,13 @@ class RandomizedTests(unittest.TestCase):
                     self.assertEqual(len(played), len(set(played)), (system, seed))
                     # total points = sum of distributed points
                     total = sum(p["pts"] for p in t.get_standings())
+                    # round-robin: the exempt player rests (0 point), and the
+                    # calendar also holds the rounds not played yet
+                    bye = 0.0 if system == "roundrobin" else t.config.bye_value
                     expected = sum(
-                        rnd["win_value"] * (t.config.bye_value if p.is_bye else 1.0)
+                        rnd["win_value"] * (bye if p.is_bye else 1.0)
                         for rnd in t._rounds
+                        if t._round_complete(rnd)
                         for p in rnd["pairings"]
                     )
                     self.assertAlmostEqual(total, expected)
@@ -264,7 +269,7 @@ class InPlaceEqualsReloadTests(unittest.TestCase):
         state = random.getstate()
         while not a.is_finished:
             if a.awaiting_results:
-                res = [GameResult(p.table, 1.0) for p in a._rounds[-1]["pairings"] if not p.is_bye]
+                res = [GameResult(p.table, 1.0) for p in a._rounds[a.current_round - 1]["pairings"] if not p.is_bye]
                 a.enter_results(res)
                 b.enter_results(res)
                 continue

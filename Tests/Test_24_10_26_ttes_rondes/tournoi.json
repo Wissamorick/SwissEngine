@@ -1,0 +1,697 @@
+{
+  "format": "swissengine-tournament",
+  "version": 1,
+  "name": "Test_24_10_26_ttes_rondes",
+  "config": {
+    "system": "roundrobin",
+    "rounds": 0,
+    "points": [],
+    "beta": 2,
+    "bye_value": 0.0,
+    "seeding": true,
+    "first_board_color": "white",
+    "double_round_robin": true
+  },
+  "options": {
+    "show_club": true
+  },
+  "players": [
+    {
+      "name": "Ribière, Damien",
+      "elo": 2234,
+      "club": "Vevey"
+    },
+    {
+      "name": "Bigi, Filippo",
+      "elo": 1940,
+      "club": "Italie"
+    },
+    {
+      "name": "Miesen, Sander",
+      "elo": 1914,
+      "club": "La Dame Blanche"
+    },
+    {
+      "name": "Lippsmeier, Julien",
+      "elo": 1780,
+      "club": "Nyon"
+    },
+    {
+      "name": "Halilovic, Dario",
+      "elo": 1710,
+      "club": "La Sarraz"
+    },
+    {
+      "name": "How, Wei Bin",
+      "elo": 1680,
+      "club": "La Dame Blanche"
+    },
+    {
+      "name": "Delaroche, Louis",
+      "elo": 1620,
+      "club": "La Dame Blanche"
+    },
+    {
+      "name": "Thonet, Amélie",
+      "elo": 1100
+    },
+    {
+      "name": "Berlenghi, Viva",
+      "elo": 1100,
+      "club": "La Dame Blanche"
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 2,
+          "white": "Berlenghi, Viva",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Miesen, Sander",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Delaroche, Louis",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Halilovic, Dario",
+          "black": "How, Wei Bin",
+          "white_score": 0.0
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Thonet, Amélie",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "Bigi, Filippo",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "How, Wei Bin",
+          "black": "Miesen, Sander",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Lippsmeier, Julien",
+          "black": "Halilovic, Dario",
+          "white_score": 1.0
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Thonet, Amélie",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Delaroche, Louis",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "How, Wei Bin",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "Halilovic, Dario",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 5,
+          "white": "Miesen, Sander",
+          "black": "Lippsmeier, Julien",
+          "white_score": 1.0
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "How, Wei Bin",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Berlenghi, Viva",
+          "black": "Halilovic, Dario",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Lippsmeier, Julien",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "Bigi, Filippo",
+          "black": "Miesen, Sander",
+          "white_score": 0.0
+        }
+      ]
+    },
+    {
+      "round": 5,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "How, Wei Bin",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Halilovic, Dario",
+          "black": "Delaroche, Louis",
+          "white_score": 0.5
+        },
+        {
+          "table": 3,
+          "white": "Lippsmeier, Julien",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Miesen, Sander",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Bigi, Filippo",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 6,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Halilovic, Dario",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "How, Wei Bin",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Delaroche, Louis",
+          "black": "Miesen, Sander",
+          "white_score": 0.5
+        },
+        {
+          "table": 4,
+          "white": "Thonet, Amélie",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 5,
+          "white": "Berlenghi, Viva",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 7,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Lippsmeier, Julien",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Miesen, Sander",
+          "black": "Halilovic, Dario",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Bigi, Filippo",
+          "black": "How, Wei Bin",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Delaroche, Louis",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "Berlenghi, Viva",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        }
+      ]
+    },
+    {
+      "round": 8,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Miesen, Sander",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Bigi, Filippo",
+          "black": "Lippsmeier, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Halilovic, Dario",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "How, Wei Bin",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Thonet, Amélie",
+          "black": "Delaroche, Louis",
+          "white_score": 0.0
+        }
+      ]
+    },
+    {
+      "round": 9,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Bigi, Filippo",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Miesen, Sander",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "Lippsmeier, Julien",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Thonet, Amélie",
+          "black": "Halilovic, Dario",
+          "white_score": 0.0
+        },
+        {
+          "table": 5,
+          "white": "Delaroche, Louis",
+          "black": "How, Wei Bin",
+          "white_score": 0.0
+        }
+      ]
+    },
+    {
+      "round": 10,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 2,
+          "white": "Bigi, Filippo",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Thonet, Amélie",
+          "black": "Miesen, Sander",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Lippsmeier, Julien",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "How, Wei Bin",
+          "black": "Halilovic, Dario",
+          "white_score": 0.5
+        }
+      ]
+    },
+    {
+      "round": 11,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Berlenghi, Viva",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Thonet, Amélie",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "Delaroche, Louis",
+          "black": "Bigi, Filippo",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Miesen, Sander",
+          "black": "How, Wei Bin",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Halilovic, Dario",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.5
+        }
+      ]
+    },
+    {
+      "round": 12,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Berlenghi, Viva",
+          "black": "Delaroche, Louis",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "How, Wei Bin",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "Bigi, Filippo",
+          "black": "Halilovic, Dario",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Lippsmeier, Julien",
+          "black": "Miesen, Sander",
+          "white_score": 1.0
+        }
+      ]
+    },
+    {
+      "round": 13,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Delaroche, Louis",
+          "black": "Ribière, Damien",
+          "white_score": 0.0
+        },
+        {
+          "table": 2,
+          "white": "Thonet, Amélie",
+          "black": "How, Wei Bin",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Halilovic, Dario",
+          "black": "Berlenghi, Viva",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Lippsmeier, Julien",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "Miesen, Sander",
+          "black": "Bigi, Filippo",
+          "white_score": 0.5
+        }
+      ]
+    },
+    {
+      "round": 14,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "How, Wei Bin",
+          "black": "Ribière, Damien",
+          "white_score": 0.5
+        },
+        {
+          "table": 2,
+          "white": "Delaroche, Louis",
+          "black": "Halilovic, Dario",
+          "white_score": 0.5
+        },
+        {
+          "table": 3,
+          "white": "Thonet, Amélie",
+          "black": "Lippsmeier, Julien",
+          "white_score": 0.0
+        },
+        {
+          "table": 4,
+          "white": "Berlenghi, Viva",
+          "black": "Miesen, Sander",
+          "white_score": 0.0
+        },
+        {
+          "table": 5,
+          "white": "Bigi, Filippo",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 15,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Halilovic, Dario",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Lippsmeier, Julien",
+          "black": "How, Wei Bin",
+          "white_score": 1.0
+        },
+        {
+          "table": 3,
+          "white": "Miesen, Sander",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Bigi, Filippo",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "Berlenghi, Viva",
+          "black": "bye",
+          "white_score": null
+        }
+      ]
+    },
+    {
+      "round": 16,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Lippsmeier, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Halilovic, Dario",
+          "black": "Miesen, Sander",
+          "white_score": 0.5
+        },
+        {
+          "table": 3,
+          "white": "How, Wei Bin",
+          "black": "Bigi, Filippo",
+          "white_score": 0.5
+        },
+        {
+          "table": 4,
+          "white": "Delaroche, Louis",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 5,
+          "white": "Thonet, Amélie",
+          "black": "Berlenghi, Viva",
+          "white_score": 0.5
+        }
+      ]
+    },
+    {
+      "round": 17,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Miesen, Sander",
+          "black": "Ribière, Damien",
+          "white_score": 1.0
+        },
+        {
+          "table": 2,
+          "white": "Lippsmeier, Julien",
+          "black": "Bigi, Filippo",
+          "white_score": 0.0
+        },
+        {
+          "table": 3,
+          "white": "Halilovic, Dario",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 4,
+          "white": "Berlenghi, Viva",
+          "black": "How, Wei Bin",
+          "white_score": 0.5
+        },
+        {
+          "table": 5,
+          "white": "Delaroche, Louis",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        }
+      ]
+    },
+    {
+      "round": 18,
+      "pairings": [
+        {
+          "table": 1,
+          "white": "Ribière, Damien",
+          "black": "Bigi, Filippo",
+          "white_score": 0.5
+        },
+        {
+          "table": 2,
+          "white": "Miesen, Sander",
+          "black": "bye",
+          "white_score": null
+        },
+        {
+          "table": 3,
+          "white": "Berlenghi, Viva",
+          "black": "Lippsmeier, Julien",
+          "white_score": 1.0
+        },
+        {
+          "table": 4,
+          "white": "Halilovic, Dario",
+          "black": "Thonet, Amélie",
+          "white_score": 1.0
+        },
+        {
+          "table": 5,
+          "white": "How, Wei Bin",
+          "black": "Delaroche, Louis",
+          "white_score": 1.0
+        }
+      ]
+    }
+  ],
+  "saved_at": "2026-10-24T19:35:40"
+}

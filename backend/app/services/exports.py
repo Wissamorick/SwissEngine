@@ -25,6 +25,7 @@ TIEBREAK_LABELS = {
     "Bu1": "Tr.",
     "Bu": "Buchholz",
     "SB": "S.-B.",
+    "Perf": "Perf.",
 }
 
 RESULT_LABELS = {1.0: "1-0", 0.5: "½-½", 0.0: "0-1"}
@@ -163,6 +164,11 @@ td.rc.bye { color: #78726b; font-size: 12px; letter-spacing: 0.04em; }
 .toolbar { margin-bottom: 16px; }
 .toolbar button { padding: 0 14px; height: 32px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
   color: #fff; background: #141414; border: 1px solid #141414; border-radius: 4px; box-shadow: 3px 3px 0 #cc0000; }
+td.gc { text-align: center; white-space: nowrap; padding: 4px 3px; font-variant-numeric: tabular-nums; }
+td.gc.self { background: #2b2b2b !important; }
+td.gc .g + .g { margin-left: 6px; }
+td.gc .g.todo { color: #aaa; }
+th.gn { text-align: center; width: 34px; }
 @media print {
   body { margin: 0; }
   .toolbar { display: none; }
@@ -202,6 +208,8 @@ def _page(title: str, subtitle: str, meta: str, body: str, auto_print: bool = Fa
 
 def _meta(tournament_status: dict) -> str:
     system = SYSTEM_LABELS.get(tournament_status["system"], tournament_status["system"])
+    if tournament_status.get("config", {}).get("double_round_robin"):
+        system = "Round-robin aller-retour"
     return f"{system} · {tournament_status['player_count']} joueurs · {tournament_status['total_rounds']} rondes"
 
 
@@ -282,7 +290,9 @@ def crosstable_html(tournament_status: dict, table: dict, auto_print: bool = Fal
     body = (
         f"<table><thead>{head}</thead><tbody>{''.join(lines)}</tbody></table>"
         "<p class='legend'>+ gain, = nulle, − perte · numéro = place de l'adversaire · "
-        "B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz tronqué.</p>"
+        "B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz tronqué"
+        + (" · Perf. = performance Elo" if "Perf" in keys else "")
+        + ".</p>"
     )
     return _page(
         tournament_status["name"],
@@ -291,4 +301,93 @@ def crosstable_html(tournament_status: dict, table: dict, auto_print: bool = Fal
         body,
         auto_print,
         landscape=k > 7 or (show_club and k > 5),
+    )
+
+
+# ------------------------------------------------------- round-robin grid
+def grid_score_label(score: float | None) -> str:
+    """1, ½, 0 — or · for a game still to be played."""
+    if score is None:
+        return "·"
+    return {1.0: "1", 0.5: "½", 0.0: "0"}.get(float(score), f"{score:g}")
+
+
+def _grid_cell_text(cell: list[dict] | None) -> str:
+    if cell is None:
+        return "×"
+    return " ".join(grid_score_label(g["score"]) for g in cell)
+
+
+def results_grid_csv(grid: dict, show_club: bool = False) -> str:
+    keys = grid["tiebreak_keys"]
+    n = len(grid["rows"])
+    head = (
+        ["Pl", "Nom"] + (["Club / équipe"] if show_club else []) + ["Elo"]
+        + [str(i) for i in range(1, n + 1)] + ["Pts"] + [tiebreak_label(t) for t in keys] + ["Parties"]
+    )
+    rows = [head]
+    for row in grid["rows"]:
+        rows.append(
+            [row["rank"], row["name"]]
+            + ([row.get("club") or ""] if show_club else [])
+            + [row["elo"]]
+            + [_grid_cell_text(c) for c in row["cells"]]
+            + [fmt_pts(row["pts"])]
+            + [fmt_pts(row["tiebreaks"].get(t)) for t in keys]
+            + [row["played"]]
+        )
+    return _csv(rows)
+
+
+def results_grid_html(tournament_status: dict, grid: dict, auto_print: bool = False) -> str:
+    keys = grid["tiebreak_keys"]
+    n = len(grid["rows"])
+    show_club = bool(tournament_status.get("show_club"))
+    head = (
+        "<tr><th>Pl</th><th>Nom</th>"
+        + ("<th>Club / équipe</th>" if show_club else "")
+        + "<th>Elo</th>"
+        + "".join(f"<th class='gn'>{i}</th>" for i in range(1, n + 1))
+        + "<th>Pts</th>"
+        + "".join(f"<th>{escape(tiebreak_label(t))}</th>" for t in keys)
+        + "</tr>"
+    )
+    lines = []
+    for row in grid["rows"]:
+        cells = []
+        for cell in row["cells"]:
+            if cell is None:
+                cells.append("<td class='gc self'></td>")
+                continue
+            parts = "".join(
+                f"<span class='g{' todo' if g['score'] is None else ''}'>{grid_score_label(g['score'])}</span>"
+                for g in cell
+            )
+            cells.append(f"<td class='gc'>{parts}</td>")
+        lines.append(
+            f"<tr><td class='pl'>{row['rank']}</td><td class='name'>{escape(row['name'])}</td>"
+            + (f"<td class='club'>{escape(row.get('club') or '')}</td>" if show_club else "")
+            + f"<td class='elo'>{row['elo']}</td>"
+            + "".join(cells)
+            + f"<td class='pts'>{fmt_pts(row['pts'])}</td>"
+            + "".join(f"<td class='tb'>{fmt_pts(row['tiebreaks'].get(t))}</td>" for t in keys)
+            + "</tr>"
+        )
+    legs = "Chaque case : résultat du joueur de la ligne contre celui de la colonne"
+    if grid["legs"] == 2:
+        legs += " (aller puis retour)"
+    body = (
+        f"<table><thead>{head}</thead><tbody>{''.join(lines)}</tbody></table>"
+        f"<p class='legend'>{legs} · 1 gain, ½ nulle, 0 perte, · à jouer · "
+        f"{grid['games_played']} parties jouées sur {grid['games_total']}"
+        + (" · Perf. = performance Elo" if "Perf" in keys else "")
+        + ".</p>"
+    )
+    return _page(
+        tournament_status["name"],
+        "Grille des résultats",
+        _meta(tournament_status),
+        body,
+        auto_print,
+        landscape=n > 10 or (show_club and n > 7),
     )

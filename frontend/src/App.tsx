@@ -8,13 +8,15 @@ import type {
   TournamentState,
   TournamentStatus,
 } from './types'
-import { SYSTEM_LABELS } from './types'
+import { MAX_ROUND_ROBIN_PLAYERS, SYSTEM_LABELS } from './types'
 import { fmtDate } from './format'
 import { CreateTournament } from './components/CreateTournament'
 import { AddPlayers } from './components/AddPlayers'
 import { Pairings } from './components/Pairings'
 import { Standings } from './components/Standings'
 import { Crosstable } from './components/Crosstable'
+import { ResultsGrid } from './components/ResultsGrid'
+import { Schedule } from './components/Schedule'
 import { RoundHistory } from './components/RoundHistory'
 import type { EditRequest } from './components/RoundHistory'
 import { OpenTournament } from './components/OpenTournament'
@@ -22,11 +24,11 @@ import { FolderPicker } from './components/FolderPicker'
 import { Faq } from './components/Faq'
 import { BrandLockup } from './components/Brand'
 import { Icon } from './components/Icon'
-import { Banner, BusyBar, LongTaskOverlay, useConfirm } from './components/Feedback'
+import { Banner, BusyBar, LongTaskOverlay, Modal, useConfirm } from './components/Feedback'
 import './App.css'
 
-type Tab = 'standings' | 'crosstable' | 'rounds'
-type Dialog = null | 'save' | 'open'
+type Tab = 'standings' | 'crosstable' | 'rounds' | 'grid'
+type Dialog = null | 'save' | 'open' | 'settings'
 type View = 'tournament' | 'faq'
 
 const CURRENT_KEY = 'swissengine.currentTournament'
@@ -117,6 +119,33 @@ export default function App() {
   }
 
   // ------------------------------------------------------------- actions
+  // Settings can be changed until the first round is generated.
+  function handleUpdateSettings(config: TournamentConfigInput) {
+    if (!id) return
+    run(async () => {
+      await api.updateSettings(id, config)
+      setDialog(null)
+      await load(id)
+      setNotice('Paramètres du tournoi mis à jour.')
+    })
+  }
+
+  async function handleRemovePlayer(name: string) {
+    if (!id) return
+    const ok = await confirm({
+      title: 'Retirer ce joueur ?',
+      message: `« ${name} » sera retiré de la liste des inscrits.`,
+      confirmLabel: 'Retirer',
+      danger: true,
+    })
+    if (!ok) return
+    run(async () => {
+      await api.removePlayer(id, name)
+      await load(id)
+      setNotice(`« ${name} » a été retiré.`)
+    })
+  }
+
   function handleCreate(config: TournamentConfigInput) {
     run(async () => openStatus(await api.createTournament(config)), 'Création du tournoi…')
   }
@@ -218,6 +247,48 @@ export default function App() {
     }, 'Calcul des appariements…')
   }
 
+  // Round-robin: the whole calendar at once (closes the registrations)
+  function handleStartSchedule() {
+    if (!id) return
+    run(async () => {
+      await api.startSchedule(id)
+      await load(id)
+    }, 'Création du calendrier…')
+  }
+
+  // Round-robin: one result saved at once (null clears it)
+  function handleSetGameResult(round: number, table: number, whiteScore: number | null) {
+    if (!id) return
+    run(async () => {
+      await api.setGameResult(id, round, table, whiteScore)
+      await load(id)
+    })
+  }
+
+  async function handleEndCalendar() {
+    if (!id || !status) return
+    const ok = await confirm({
+      title: 'Terminer le tournoi maintenant ?',
+      message: (
+        <>
+          <p>
+            Les rondes qui n'ont encore aucun résultat seront retirées du calendrier et le
+            classement actuel deviendra définitif. Cette action est définitive.
+          </p>
+          <p>Toutes les rondes déjà commencées doivent être complètes.</p>
+        </>
+      ),
+      confirmLabel: 'Terminer le tournoi',
+      danger: true,
+    })
+    if (!ok) return
+    run(async () => {
+      await api.endTournament(id)
+      const s = await load(id)
+      setNotice(`Tournoi terminé après ${s.status.total_rounds} ronde${s.status.total_rounds > 1 ? 's' : ''}.`)
+    })
+  }
+
   async function handleEndTournament() {
     if (!id || !status) return
     const ok = await confirm({
@@ -260,13 +331,50 @@ export default function App() {
   }
 
   // Rename a player and/or change their Elo. Returns true on success.
+  // Players read from a file are registered at once (not added to the pending list).
+  async function handleImportPlayers(players: PlayerInput[], hasClub: boolean): Promise<string | null> {
+    if (!id) return 'Aucun tournoi ouvert.'
+    const turnOnClub = hasClub && !status?.show_club
+    try {
+      setBusy(true)
+      await api.addPlayers(id, players)
+      let clubOn = false
+      if (turnOnClub) {
+        try {
+          await api.setOptions(id, true)
+          clubOn = true
+        } catch {
+          // players are registered anyway; the option can be turned on by hand
+        }
+      }
+      await load(id)
+      setError(null)
+      setNotice(
+        `${players.length} joueur${players.length > 1 ? 's' : ''} importé${players.length > 1 ? 's' : ''}.` +
+          (clubOn ? ' L’option « Afficher club / équipe » a été activée (vous pouvez la désactiver).' : ''),
+      )
+      return null
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleEditPlayer(name: string, newName: string, elo: number): Promise<boolean> {
     if (!id) return false
     let ok = false
     await run(async () => {
       await api.editPlayer(id, name, newName, elo)
       await load(id)
-      setNotice(newName !== name ? `« ${name} » s'appelle maintenant « ${newName} ».` : `Elo de ${name} mis à jour.`)
+      setNotice(
+        newName !== name
+          ? `« ${name} » s'appelle maintenant « ${newName} ».`
+          : `Elo de ${name} mis à jour.` +
+              (status?.started
+                ? ' Les appariements déjà faits ne changent pas ; le nouvel Elo comptera pour les rondes suivantes.'
+                : ''),
+      )
       ok = true
     })
     return ok
@@ -338,6 +446,21 @@ export default function App() {
   const roundLabel = status ? Math.min(status.current_round, status.total_rounds) : 0
   const canGenerate =
     !!status && !status.finished && !status.awaiting_results && status.player_count >= 2
+  const isRoundRobin = status?.system === 'roundrobin'
+  // round-robin once started: every round exists, results in any order
+  const calendar = isRoundRobin && !!status?.started
+  const legRounds =
+    status && status.config.double_round_robin ? status.total_rounds / 2 : (status?.total_rounds ?? 0)
+  // the crosstable and the round history do not apply to a round-robin
+  const shownTab: Tab = isRoundRobin
+    ? tab === 'standings'
+      ? 'standings'
+      : 'grid'
+    : tab === 'grid'
+      ? 'crosstable'
+      : tab
+  const roundComplete = (r: { pairings: { is_bye: boolean; white_score: number | null }[] }) =>
+    r.pairings.every((p) => p.is_bye || p.white_score !== null)
 
   return (
     <div className="app">
@@ -412,26 +535,55 @@ export default function App() {
           <>
             <section className="t-head" aria-label="Tournoi en cours">
               <div className="t-head-main">
-                <p className="eyebrow">{SYSTEM_LABELS[status.system] ?? status.system}</p>
+                <p className="eyebrow">
+                  {status.config.double_round_robin
+                    ? 'Round-robin aller-retour'
+                    : (SYSTEM_LABELS[status.system] ?? status.system)}
+                </p>
                 <h1 className="page-title">{status.name}</h1>
-                <RoundTrack
-                  total={status.total_rounds}
-                  completed={status.completed_rounds}
-                  awaiting={status.awaiting_results}
-                />
+                {calendar ? (
+                  <CalendarTrack rounds={state.rounds} />
+                ) : (
+                  <RoundTrack
+                    total={status.total_rounds}
+                    completed={status.completed_rounds}
+                    awaiting={status.awaiting_results}
+                  />
+                )}
                 <p className="t-meta">
                   <span>{status.player_count} joueurs</span>
-                  <span>
-                    {status.finished
-                      ? `Terminé · ${status.total_rounds} rondes`
-                      : `Ronde ${roundLabel} sur ${status.total_rounds}`}
-                  </span>
+                  {calendar ? (
+                    <span>
+                      {status.finished ? 'Terminé · ' : ''}
+                      {status.games_played ?? 0} partie{(status.games_played ?? 0) > 1 ? 's' : ''}{' '}
+                      saisie{(status.games_played ?? 0) > 1 ? 's' : ''} sur {status.games_total ?? 0}
+                    </span>
+                  ) : isRoundRobin ? (
+                    <span>{status.total_rounds} rondes au calendrier</span>
+                  ) : (
+                    <span>
+                      {status.finished
+                        ? `Terminé · ${status.total_rounds} rondes`
+                        : `Ronde ${roundLabel} sur ${status.total_rounds}`}
+                    </span>
+                  )}
                   {status.awaiting_results && <span>En attente des résultats</span>}
                 </p>
               </div>
 
               <div className="t-head-side">
                 <div className="toolbar">
+                  {!status.started && (
+                    <button
+                      className="secondary"
+                      onClick={() => setDialog('settings')}
+                      disabled={busy}
+                      title="Système, nombre de rondes, points… (modifiables jusqu'à la première ronde)"
+                    >
+                      <Icon name="edit" />
+                      Paramètres
+                    </button>
+                  )}
                   <button className="secondary" onClick={() => setDialog('save')} disabled={busy}>
                     <Icon name="save" />
                     {status.save_dir ? 'Enregistrer sous…' : 'Enregistrer…'}
@@ -502,7 +654,62 @@ export default function App() {
               </Banner>
             )}
 
-            {!status.finished && (
+            {calendar && (
+              <section className="card card-current">
+                <header className="card-head">
+                  <h2>
+                    Calendrier
+                    <span className="card-sub">
+                      {status.config.double_round_robin ? 'aller-retour' : `${status.total_rounds} rondes`}
+                    </span>
+                  </h2>
+                  <div className="card-head-tools">
+                    {!status.finished && (
+                      <button
+                        className="secondary sm"
+                        onClick={handleEndCalendar}
+                        disabled={busy || !status.games_played}
+                        title="Arrêter le tournoi avant la fin du calendrier"
+                      >
+                        Terminer le tournoi
+                      </button>
+                    )}
+                  </div>
+                </header>
+                <Schedule
+                  rounds={state.rounds}
+                  legRounds={legRounds}
+                  double={status.config.double_round_robin}
+                  initialRound={
+                    (state.rounds.find((r) => !roundComplete(r))?.round ?? state.rounds.length) || 1
+                  }
+                  onSetResult={handleSetGameResult}
+                  onPrint={(r) => openPrint(api.urls.printPairings(status.id, r))}
+                />
+              </section>
+            )}
+
+            {isRoundRobin && !status.started && (
+              <section className="card card-current">
+                <div className="next-round">
+                  <div>
+                    <h2>Calendrier</h2>
+                    <p className="hint">
+                      {status.player_count < 2
+                        ? 'Inscrivez au moins 2 joueurs pour générer le calendrier.'
+                        : `Toutes les rondes (${status.total_rounds}) seront créées d'un coup ; les résultats pourront être saisis dans n'importe quel ordre. Les inscriptions seront closes.`}
+                    </p>
+                  </div>
+                  <div className="actions">
+                    <button onClick={handleStartSchedule} disabled={!canGenerate || busy}>
+                      Générer le calendrier
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {!status.finished && !isRoundRobin && (
               <section className="card card-current">
                 {pendingRound ? (
                   <>
@@ -564,7 +771,14 @@ export default function App() {
               </section>
             )}
 
-            {status.finished && (
+            {status.finished && isRoundRobin && (
+              <Banner tone="success">
+                Tournoi terminé : tous les résultats sont saisis. Le classement ci-dessous est
+                définitif ; un résultat peut encore être modifié dans le calendrier.
+              </Banner>
+            )}
+
+            {status.finished && !isRoundRobin && (
               <Banner tone="success">
                 Tournoi terminé après {status.total_rounds} ronde{status.total_rounds > 1 ? 's' : ''}. Le classement ci-dessous est
                 définitif ; il reste possible de corriger un résultat dans « Rondes jouées ».
@@ -576,6 +790,7 @@ export default function App() {
               pending={pendingPlayers}
               locked={status.started}
               showClub={status.show_club}
+              maxPlayers={isRoundRobin ? MAX_ROUND_ROBIN_PLAYERS : null}
               busy={busy}
               onToggleClub={handleToggleClub}
               onSetClub={handleSetClub}
@@ -583,41 +798,62 @@ export default function App() {
               onAdd={(p) => setPendingPlayers((prev) => [...prev, p])}
               onRemove={(i) => setPendingPlayers((prev) => prev.filter((_, idx) => idx !== i))}
               onSubmit={handleSubmitPlayers}
+              onImport={handleImportPlayers}
+              onRemovePlayer={handleRemovePlayer}
             />
 
             <section className="card card-results">
               <div className="tabs" role="tablist" aria-label="Résultats du tournoi">
                 <button
                   role="tab"
-                  aria-selected={tab === 'standings'}
+                  aria-selected={shownTab === 'standings'}
                   className="tab"
                   onClick={() => setTab('standings')}
                 >
                   Classement
                 </button>
-                <button
-                  role="tab"
-                  aria-selected={tab === 'crosstable'}
-                  className="tab"
-                  onClick={() => setTab('crosstable')}
-                >
-                  Grille américaine
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={tab === 'rounds'}
-                  className="tab"
-                  onClick={() => setTab('rounds')}
-                >
-                  Rondes jouées <span className="count">{status.completed_rounds}</span>
-                </button>
+                {isRoundRobin ? (
+                  <button
+                    role="tab"
+                    aria-selected={shownTab === 'grid'}
+                    className="tab"
+                    onClick={() => setTab('grid')}
+                  >
+                    Grille des résultats
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      role="tab"
+                      aria-selected={shownTab === 'crosstable'}
+                      className="tab"
+                      onClick={() => setTab('crosstable')}
+                    >
+                      Grille américaine
+                    </button>
+                    <button
+                      role="tab"
+                      aria-selected={shownTab === 'rounds'}
+                      className="tab"
+                      onClick={() => setTab('rounds')}
+                    >
+                      Rondes jouées <span className="count">{status.completed_rounds}</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="tab-panel" role="tabpanel">
-                {tab === 'standings' && (
+                {shownTab === 'standings' && (
                   <Standings standings={state.standings} showClub={status.show_club} />
                 )}
-                {tab === 'crosstable' && (
+                {shownTab === 'grid' &&
+                  (status.started ? (
+                    <ResultsGrid tournamentId={status.id} showClub={status.show_club} version={version} />
+                  ) : (
+                    <p className="hint">La grille apparaîtra dès que le calendrier sera généré.</p>
+                  ))}
+                {shownTab === 'crosstable' && (
                   <Crosstable
                     tournamentId={status.id}
                     completedRounds={status.completed_rounds}
@@ -625,7 +861,7 @@ export default function App() {
                     version={version}
                   />
                 )}
-                {tab === 'rounds' && (
+                {shownTab === 'rounds' && (
                   <RoundHistory
                     rounds={state.rounds}
                     editRequest={editRequest}
@@ -652,6 +888,25 @@ export default function App() {
           onCancel={() => setDialog(null)}
           onConfirm={handleSave}
         />
+      )}
+      {dialog === 'settings' && status && !status.started && (
+        <Modal title="Paramètres du tournoi" onClose={() => setDialog(null)} size="lg">
+          {error && <Banner tone="error">{error}</Banner>}
+          <p className="hint">
+            Modifiables tant que la première ronde n'a pas été générée. Les joueurs inscrits sont
+            conservés.
+          </p>
+          <CreateTournament
+            disabled={busy}
+            initial={{ ...status.config, name: status.name, show_club: status.show_club }}
+            onCreate={handleUpdateSettings}
+            onCancel={() => setDialog(null)}
+            onHelp={(anchor) => {
+              setDialog(null)
+              openFaq(anchor)
+            }}
+          />
+        </Modal>
       )}
       {dialog === 'open' && (
         <FolderPicker
@@ -692,6 +947,30 @@ function RoundTrack({
         return (
           <li key={r} className={`rt-${state}`} title={`Ronde ${r}`}>
             <span className="rt-label">{r}</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+/** Round-robin: one segment per round of the calendar, filled when complete. */
+function CalendarTrack({
+  rounds,
+}: {
+  rounds: { round: number; pairings: { is_bye: boolean; white_score: number | null }[] }[]
+}) {
+  if (rounds.length === 0) return null
+  const done = rounds.filter((r) => r.pairings.every((p) => p.is_bye || p.white_score !== null))
+  return (
+    <ol className="round-track" aria-label={`${done.length} ronde(s) complète(s) sur ${rounds.length}`}>
+      {rounds.map((r) => {
+        const games = r.pairings.filter((p) => !p.is_bye)
+        const entered = games.filter((p) => p.white_score !== null).length
+        const state = entered === games.length ? 'done' : entered > 0 ? 'partial' : 'todo'
+        return (
+          <li key={r.round} className={`rt-${state}`} title={`Ronde ${r.round} : ${entered}/${games.length}`}>
+            <span className="rt-label">{r.round}</span>
           </li>
         )
       })}

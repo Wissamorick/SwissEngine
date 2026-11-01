@@ -18,6 +18,9 @@ from backend.app.models.schemas import (
     OptionsRequest,
     PairingResponse,
     PlayerClubRequest,
+    PlayerRemoveRequest,
+    GameResultRequest,
+    ResultsGrid,
     PlayerEditRequest,
     RecentTournament,
     RollbackRequest,
@@ -120,6 +123,48 @@ def set_player_club(tournament_id: str, body: PlayerClubRequest) -> TournamentSt
     return _call(
         tournament_service.set_player_club, tournament_id, body.name, body.club, tournament_id=tournament_id
     )
+
+
+@router.post("/tournament/{tournament_id}/schedule", response_model=TournamentStatus)
+def start_schedule(tournament_id: str) -> TournamentStatus:
+    """Round-robin: generate the whole calendar."""
+    return _call(tournament_service.start_schedule, tournament_id, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/game-result", response_model=TournamentStatus)
+def set_game_result(tournament_id: str, body: GameResultRequest) -> TournamentStatus:
+    """Round-robin: result of one game, any round, any order (null clears it)."""
+    return _call(
+        tournament_service.set_game_result,
+        tournament_id,
+        body.round,
+        body.table,
+        body.white_score,
+        tournament_id=tournament_id,
+    )
+
+
+@router.get("/tournament/{tournament_id}/results-grid", response_model=ResultsGrid)
+def get_results_grid(tournament_id: str) -> ResultsGrid:
+    return _call(tournament_service.get_results_grid, tournament_id, tournament_id=tournament_id)
+
+
+@router.get("/tournament/{tournament_id}/print/results-grid", response_class=HTMLResponse)
+def print_results_grid(tournament_id: str, auto: bool = False) -> HTMLResponse:
+    html = _call(tournament_service.print_results_grid, tournament_id, auto, tournament_id=tournament_id)
+    return HTMLResponse(html)
+
+
+@router.post("/tournament/{tournament_id}/settings", response_model=TournamentStatus)
+def update_settings(tournament_id: str, body: CreateTournamentRequest) -> TournamentStatus:
+    """Change system, rounds, points… before the first round."""
+    return _call(tournament_service.update_settings, tournament_id, body, tournament_id=tournament_id)
+
+
+@router.post("/tournament/{tournament_id}/player-remove", response_model=TournamentStatus)
+def remove_player(tournament_id: str, body: PlayerRemoveRequest) -> TournamentStatus:
+    """Unregister a player before the first round."""
+    return _call(tournament_service.remove_player, tournament_id, body.name, tournament_id=tournament_id)
 
 
 @router.post("/tournament/{tournament_id}/player-edit", response_model=TournamentStatus)

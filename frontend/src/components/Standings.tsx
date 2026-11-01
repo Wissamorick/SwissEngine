@@ -1,5 +1,5 @@
 import type { StandingEntry } from '../types'
-import { TIEBREAK_LABELS } from '../types'
+import { TIEBREAK_HELP, TIEBREAK_LABELS } from '../types'
 import { fmtPts } from '../format'
 import { EmptyState } from './Feedback'
 
@@ -29,7 +29,7 @@ export function Standings({ standings, showClub }: Props) {
             <th className="num col-elo">Elo</th>
             <th className="num col-points">Pts</th>
             {tiebreakKeys.map((k) => (
-              <th key={k} className="num">
+              <th key={k} className="num" title={TIEBREAK_HELP[k]}>
                 {TIEBREAK_LABELS[k] ?? k}
               </th>
             ))}

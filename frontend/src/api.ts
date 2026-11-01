@@ -8,6 +8,7 @@ import type {
   PlayerInput,
   RecentTournament,
   ResultInput,
+  ResultsGrid,
   StandingEntry,
   TournamentConfigInput,
   TournamentState,
@@ -110,6 +111,16 @@ export function setPlayerClub(id: string, name: string, club: string): Promise<T
   return post(`/tournament/${id}/player-club`, { name, club })
 }
 
+/** Change the settings (system, rounds, points…) before the first round. */
+export function updateSettings(id: string, config: TournamentConfigInput): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/settings`, config)
+}
+
+/** Unregister a player before the first round. */
+export function removePlayer(id: string, name: string): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/player-remove`, { name })
+}
+
 export function editPlayer(
   id: string,
   name: string,
@@ -117,6 +128,24 @@ export function editPlayer(
   elo: number,
 ): Promise<TournamentStatus> {
   return post(`/tournament/${id}/player-edit`, { name, new_name: newName, elo })
+}
+
+// Round-robin calendar: every round at once, results in any order
+export function startSchedule(id: string): Promise<TournamentStatus> {
+  return request(`/tournament/${id}/schedule`, { method: 'POST' })
+}
+
+export function setGameResult(
+  id: string,
+  round: number,
+  table: number,
+  whiteScore: number | null,
+): Promise<TournamentStatus> {
+  return post(`/tournament/${id}/game-result`, { round, table, white_score: whiteScore })
+}
+
+export function getResultsGrid(id: string): Promise<ResultsGrid> {
+  return request(`/tournament/${id}/results-grid`)
 }
 
 export function endTournament(id: string): Promise<TournamentStatus> {
@@ -163,5 +192,6 @@ export const urls = {
     `${BASE}/tournament/${id}/print/pairings/${round}?auto=true`,
   printCrosstable: (id: string, round: number) =>
     `${BASE}/tournament/${id}/print/crosstable/${round}?auto=true`,
+  printResultsGrid: (id: string) => `${BASE}/tournament/${id}/print/results-grid?auto=true`,
   exportJson: (id: string) => `${BASE}/tournament/${id}/export`,
 }

@@ -21,6 +21,7 @@ from backend.app.models.schemas import (
     EnterResultsRequest,
     PairingResponse,
     PlayerOut,
+    ResultsGrid,
     RoundInfo,
     StandingEntry,
     TournamentState,
@@ -115,6 +116,8 @@ def _status(tournament_id: str) -> TournamentStatus:
         player_count=raw["player_count"],
         show_club=raw["show_club"],
         max_safe_rounds=raw["max_safe_rounds"],
+        games_total=raw["games_total"],
+        games_played=raw["games_played"],
         config=raw["config"],
         save_dir=str(entry.folder) if entry.folder else None,
         last_saved=entry.last_saved,
@@ -123,25 +126,51 @@ def _status(tournament_id: str) -> TournamentStatus:
 
 
 # ------------------------------------------------------------------ public
-def create_tournament(body: CreateTournamentRequest) -> TournamentStatus:
+def _config_from(body: CreateTournamentRequest) -> TournamentConfig:
+    """Validated engine configuration from the creation / settings form."""
+    is_round_robin = body.system.lower() == "roundrobin"
     config = TournamentConfig(
         system=body.system,
-        rounds=body.rounds,
-        points=list(body.points),
+        # round-robin: always the complete schedule (0 = automatic)
+        rounds=0 if is_round_robin else body.rounds,
+        # round-robin: 1 point per win in every round (no points-per-round option)
+        points=[] if is_round_robin else list(body.points),
         beta=body.beta,
-        bye_value=body.bye_value,
+        # round-robin: the exempt player only rests (0 point)
+        bye_value=0.0 if is_round_robin else body.bye_value,
         seeding=body.seeding,
         first_board_color=body.first_board_color,
+        double_round_robin=body.double_round_robin and is_round_robin,
     )
     # Validate the system name now rather than at the first round
     if config.system.lower() not in ALL_SYSTEMS:
         raise ValueError(f"Unknown system '{config.system}'. Choose among: {sorted(ALL_SYSTEMS)}")
     if config.rounds < 1 and config.system.lower() != "roundrobin":
         raise ValueError("The number of rounds must be at least 1")
+    return config
 
+
+def create_tournament(body: CreateTournamentRequest) -> TournamentStatus:
+    config = _config_from(body)
     tournament = Tournament(config, name=body.name.strip())
     tournament.show_club = body.show_club
     tournament_id = _register(tournament)
+    return _status(tournament_id)
+
+
+def update_settings(tournament_id: str, body: CreateTournamentRequest) -> TournamentStatus:
+    """Change the tournament settings, as long as no round has been generated."""
+    tournament = get_tournament(tournament_id)
+    tournament.update_settings(_config_from(body), name=body.name)
+    tournament.show_club = body.show_club
+    _autosave(tournament_id, refresh_from=1)
+    return _status(tournament_id)
+
+
+def remove_player(tournament_id: str, name: str) -> TournamentStatus:
+    """Unregister a player before the start (added by mistake...)."""
+    get_tournament(tournament_id).remove_player(name)
+    _autosave(tournament_id)
     return _status(tournament_id)
 
 
@@ -203,7 +232,32 @@ def generate_round(tournament_id: str) -> list[PairingResponse]:
     tournament = get_tournament(tournament_id)
     tournament.generate_round()
     _autosave(tournament_id)
-    return [_pairing_out(p) for p in tournament.rounds()[-1]["pairings"]]
+    # round-robin: the whole calendar now exists; return the next round to fill
+    index = tournament.current_round - 1 if tournament.is_round_robin else -1
+    return [_pairing_out(p) for p in tournament.rounds()[index]["pairings"]]
+
+
+def start_schedule(tournament_id: str) -> TournamentStatus:
+    """Round-robin: generate the whole calendar (closes the registrations)."""
+    get_tournament(tournament_id).start_schedule()
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
+def set_game_result(tournament_id: str, round_number: int, table: int, white_score: float | None) -> TournamentStatus:
+    """Round-robin: enter, change or clear the result of one game, in any order."""
+    get_tournament(tournament_id).set_result(round_number, table, white_score)
+    _autosave(tournament_id)
+    return _status(tournament_id)
+
+
+def get_results_grid(tournament_id: str) -> ResultsGrid:
+    return ResultsGrid.model_validate(get_tournament(tournament_id).results_grid())
+
+
+def print_results_grid(tournament_id: str, auto_print: bool) -> str:
+    grid = get_tournament(tournament_id).results_grid()
+    return exports.results_grid_html(_status(tournament_id).model_dump(), grid, auto_print)
 
 
 def enter_results(tournament_id: str, body: EnterResultsRequest) -> TournamentStatus:
@@ -229,7 +283,7 @@ def get_standings(tournament_id: str) -> list[StandingEntry]:
                 elo=int(player.get("Elo", 0)),
                 pts=float(player.get("pts", 0)),
                 color_diff=int(player.get("color_diff", 0)),
-                tiebreaks={k: float(v) for k, v in tb.items()},
+                tiebreaks={k: None if v is None else float(v) for k, v in tb.items()},
             )
         )
     return entries
@@ -339,6 +393,12 @@ def print_crosstable(tournament_id: str, round_number: int | None, auto_print: b
 __all__ = [
     "TournamentNotFoundError",
     "create_tournament",
+    "update_settings",
+    "start_schedule",
+    "set_game_result",
+    "get_results_grid",
+    "print_results_grid",
+    "remove_player",
     "get_tournament",
     "add_players",
     "generate_round",

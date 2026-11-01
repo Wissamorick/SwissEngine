@@ -1006,8 +1006,8 @@ code {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* columns: numbers run down the first column, then the next one */
+  columns: 280px;
   column-gap: var(--s-5);
   border-top: 1px solid var(--line);
 }
@@ -1015,10 +1015,12 @@ code {
 .player-list li {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--s-2);
   min-height: 38px;
   padding: 4px 0;
   border-bottom: 1px solid var(--line);
+  break-inside: avoid;
 }
 
 .pl-num {
@@ -1058,46 +1060,82 @@ code {
 }
 
 .player-list.with-club {
-  grid-template-columns: 1fr;
+  columns: auto;
 }
 
-input.club-input {
+/* registered players: text that becomes a field on hover / click and saves
+   itself when left (no validate / cancel buttons) */
+input.inline-input {
+  height: 28px;
+  min-width: 0;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-1);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+}
+
+input.inline-input:hover {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+input.inline-input:focus {
+  border-color: var(--ink);
+  background: var(--surface);
+  text-overflow: clip;
+}
+
+input.inline-input::placeholder {
+  color: var(--ink-4);
+  font-style: italic;
+}
+
+input.pl-name-input {
+  flex: 1 1 120px;
+  font-weight: 600;
+}
+
+input.pl-elo-input {
+  flex: none;
+  width: 64px;
+  text-align: right;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+input.pl-elo-input:focus {
+  color: var(--ink);
+}
+
+input.pl-club-input {
   flex: 0 1 220px;
   width: 220px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
 }
 
-/* inline edition of a registered player (name + Elo) */
-.player-list li.editing {
-  padding: 6px 0;
-}
-
-.pl-edit {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2);
-  width: 100%;
-}
-
-input.pl-edit-name {
-  flex: 1 1 140px;
-  min-width: 0;
-}
-
-input.pl-edit-elo {
+.pl-remove {
   flex: none;
-  width: 84px;
+  opacity: 0.45;
 }
 
-.pl-edit-msg {
+.player-list li:hover .pl-remove,
+.pl-remove:focus-visible {
+  opacity: 1;
+}
+
+.player-list li.has-error input.inline-input {
+  border-color: var(--red-line);
+}
+
+.pl-error {
   flex: 1 1 100%;
   padding-left: 32px;
-  color: var(--ink-3);
-  font-size: var(--fs-xs);
-}
-
-.pl-edit-msg.error {
   color: var(--red-ink);
+  font-size: var(--fs-xs);
 }
 
 .card-players .card-body > .switch-label {
@@ -1968,6 +2006,10 @@ main > .banner {
   width: min(440px, 100%);
 }
 
+.modal-lg {
+  width: min(980px, 100%);
+}
+
 .modal:focus {
   outline: none;
 }
@@ -2098,6 +2140,43 @@ button.dir-entry.is-tournament .dir-name {
   line-height: 1.6;
 }
 
+/* logo + name at the top of the help page */
+.faq-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin-bottom: var(--s-5);
+  color: var(--ink);
+}
+
+.faq-brand-mark {
+  display: block;
+  flex: none;
+}
+
+.faq-brand-wordmark {
+  display: block;
+  width: auto;
+  height: 30px;
+  aspect-ratio: 58.4 / 5;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .faq-brand {
+    gap: var(--s-3);
+  }
+
+  .faq-brand-mark {
+    width: 56px;
+    height: 56px;
+  }
+
+  .faq-brand-wordmark {
+    height: 18px;
+  }
+}
+
 .faq-intro {
   padding-bottom: var(--s-5);
   margin-bottom: var(--s-5);
@@ -2111,13 +2190,15 @@ button.dir-entry.is-tournament .dir-name {
 }
 
 .faq-toc {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 0 var(--s-5);
+  /* columns: the sections read from top to bottom, then the next column */
+  columns: 260px;
+  column-gap: var(--s-5);
   border-top: 1px solid var(--line);
 }
 
 .faq-toc a {
+  display: block;
+  break-inside: avoid;
   padding: var(--s-2) 0;
   border-bottom: 1px solid var(--line);
   text-decoration: none;
@@ -2729,9 +2810,9 @@ a.pdf-link:hover {
     flex-wrap: wrap;
   }
 
-  input.club-input {
+  input.pl-club-input {
     flex: 1 1 100%;
-    width: 100%;
+    width: auto;
     margin-left: 32px;
   }
 
@@ -2929,4 +3010,288 @@ a.pdf-link:hover {
     border: 0;
     padding: 0;
   }
+}
+
+/* ---------------------------------------------------- player list import */
+.card-head-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.import-file {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.import-map {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-3) var(--s-4);
+}
+
+.import-map .field {
+  margin-bottom: 0;
+}
+
+.import-field.flagged select {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 1px var(--warn);
+}
+
+table.import-preview caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.cell-missing {
+  color: var(--warn);
+  font-style: italic;
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.import-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.import-tools label.checkbox {
+  margin: 0;
+}
+
+.import-table-wrap {
+  max-height: min(56vh, 520px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+}
+
+table.import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+}
+
+table.import-table td,
+table.import-table th {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+table.import-table input[type='text'] {
+  width: 100%;
+  min-width: 140px;
+}
+
+table.import-table input.import-elo {
+  width: 84px;
+  min-width: 0;
+}
+
+table.import-table input.invalid {
+  border-color: var(--warn);
+  background: var(--warn-tint);
+}
+
+table.import-table tr.is-skipped td {
+  color: var(--ink-3);
+}
+
+table.import-table tr.is-skipped input[type='text'] {
+  color: var(--ink-3);
+  background: var(--surface-2);
+}
+
+.import-problems {
+  white-space: nowrap;
+}
+
+.import-problems .badge + .badge {
+  margin-left: 4px;
+}
+
+.import-foot-hint {
+  margin-right: auto;
+  align-self: center;
+}
+
+.modal-foot .push-start {
+  margin-right: auto;
+}
+
+.modal-foot .push-start + .import-foot-hint {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+/* tournament settings (same form as the creation, in a dialog) */
+.settings-form .form-foot {
+  justify-content: flex-end;
+}
+
+.rr-help {
+  margin: -4px 0 var(--s-3) 26px;
+}
+
+/* ---------------------------------------------- round-robin results grid */
+table.results-grid th.gn {
+  min-width: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+table.results-grid tbody tr {
+  cursor: default;
+}
+
+table.results-grid td.gc {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  border-left: 1px solid var(--line);
+}
+
+table.results-grid td.gc.self {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--line) 0 2px,
+    transparent 2px 7px
+  );
+}
+
+table.results-grid td.gc .g {
+  display: inline-block;
+  min-width: 1em;
+  text-align: center;
+}
+
+table.results-grid td.gc .g + .g {
+  margin-left: 0.35em;
+}
+
+table.results-grid td.gc .g.win {
+  color: var(--ok);
+}
+
+table.results-grid td.gc .g.loss {
+  color: var(--red-ink);
+}
+
+table.results-grid td.gc .g.draw {
+  color: var(--ink-2);
+}
+
+table.results-grid td.gc .g.todo {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+/* ------------------------------------------------- round-robin calendar */
+.schedule-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-3);
+}
+
+.schedule-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.schedule-leg {
+  min-width: 52px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+button.schedule-tab {
+  min-width: 40px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+button.schedule-tab:hover {
+  background: var(--surface);
+  border-color: var(--ink);
+  transform: none;
+}
+
+button.schedule-tab.partial {
+  box-shadow: inset 0 -4px 0 var(--ink-3);
+}
+
+button.schedule-tab.done:hover {
+  background: var(--ink);
+}
+
+button.schedule-tab.done {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+button.schedule-tab[aria-selected='true'] {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+}
+
+.schedule-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-2);
+}
+
+.schedule-head h3 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0;
+}
+
+.round-track li.rt-partial {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--ink) 0 3px,
+    var(--line-strong) 3px 6px
+  );
+}
+
+.limit-hint {
+  margin: calc(-1 * var(--s-2)) 0 var(--s-3);
+}
+
+.limit-hint.full {
+  color: var(--red-ink);
 }

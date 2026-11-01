@@ -27,7 +27,7 @@ def make(system: str, n: int, rounds: int, first: str = "random") -> Tournament:
 
 def finish(t: Tournament, rng: random.Random) -> None:
     t.enter_results(
-        [GameResult(p.table, rng.choice([0.0, 0.5, 1.0])) for p in t._rounds[-1]["pairings"] if not p.is_bye]
+        [GameResult(p.table, rng.choice([0.0, 0.5, 1.0])) for p in t._rounds[t.current_round - 1]["pairings"] if not p.is_bye]
     )
 
 
@@ -124,9 +124,9 @@ class AssignmentTests(unittest.TestCase):
                 t = make(system, n, 0 if system == "roundrobin" else max(1, n // 2))
                 while not t.is_finished:
                     t.generate_round()
-                    r = len(t._rounds)
+                    r = t.current_round  # round just generated (round-robin: whole calendar exists)
                     before = history(t, r - 1)
-                    for p in t._rounds[-1]["pairings"]:
+                    for p in t._rounds[t.current_round - 1]["pairings"]:
                         if p.is_bye:
                             continue
                         ew = before[p.white_name][0] + 0.5 * before[p.white_name][1]
@@ -146,7 +146,7 @@ class AssignmentTests(unittest.TestCase):
         t.generate_round()
         finish(t, rng)
         t.generate_round()
-        bye = next(p for p in t._rounds[-1]["pairings"] if p.is_bye)
+        bye = next(p for p in t._rounds[t.current_round - 1]["pairings"] if p.is_bye)
         hist = history(t, 1)
         player = next(p for p in t.players if p["Name"] == bye.white_name)
         self.assertEqual((player["color_diff"], player["last_color"]), hist[bye.white_name])

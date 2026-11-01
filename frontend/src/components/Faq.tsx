@@ -8,6 +8,7 @@ import faqSource from '../content/faq.md?raw'
 import { parseFaq, parseInline } from './faq/parse'
 import type { Block, FaqDoc, InlineNode, QualityChartData, QualityGroup } from './faq/parse'
 import { Radar, RadarGrid } from './faq/Radar'
+import { LogoMark, Wordmark } from './Brand'
 
 const PDF_URL = `${import.meta.env.BASE_URL}Pheng_New_Pairing_System.pdf`
 
@@ -332,7 +333,10 @@ export function Faq({ anchor }: Props) {
   return (
     <div className="faq" ref={root}>
       <div className="faq-intro">
-        <p className="eyebrow">Aide</p>
+        <div className="faq-brand">
+          <LogoMark size={88} className="faq-brand-mark" />
+          <Wordmark height={30} className="faq-brand-wordmark" />
+        </div>
         <h1 className="page-title">{doc.title}</h1>
         <Blocks blocks={doc.intro} doc={doc} />
         <div className="actions">

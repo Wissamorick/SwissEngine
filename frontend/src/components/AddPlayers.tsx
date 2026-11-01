@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PlayerInput } from '../types'
 import { Icon } from './Icon'
 import { EmptyState } from './Feedback'
+import { ImportPlayers } from './ImportPlayers'
+import { ACCEPTED_FILES } from '../import/readSheet'
 
 interface Props {
   /** players already registered on the server */
@@ -11,6 +13,8 @@ interface Props {
   /** the tournament has started: no more players can be added */
   locked: boolean
   showClub: boolean
+  /** maximum number of players (round-robin), null = no limit */
+  maxPlayers?: number | null
   busy?: boolean
   onToggleClub: (show: boolean) => void
   /** club of a registered player (can be changed at any time) */
@@ -21,22 +25,10 @@ interface Props {
   onAdd: (player: PlayerInput) => void
   onRemove: (index: number) => void
   onSubmit: () => void
-}
-
-function ClubInput({ value, onSave }: { value: string; onSave: (club: string) => void }) {
-  const [text, setText] = useState(value)
-  return (
-    <input
-      type="text"
-      className="club-input input-sm"
-      placeholder="Club / équipe"
-      aria-label="Club / équipe"
-      value={text}
-      onChange={(e) => setText(e.target.value)}
-      onBlur={() => text.trim() !== value && onSave(text.trim())}
-      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-    />
-  )
+  /** register players read from a file; resolves to an error message or null */
+  onImport: (players: PlayerInput[], hasClub: boolean) => Promise<string | null>
+  /** unregister a player (before the start only) */
+  onRemovePlayer: (name: string) => void
 }
 
 /** Same rule as the server: a name may not be empty, "bye", or another
@@ -50,92 +42,150 @@ function nameError(newName: string, current: string, all: PlayerInput[]): string
   return null
 }
 
-function EditPlayerRow({
+/**
+ * Text that turns into a field on hover / click and saves itself when the
+ * field is left (Tab, click elsewhere, Enter). Escape restores the old value.
+ * An invalid value is not sent: the old value comes back and the message is
+ * reported through onError.
+ */
+function InlineField({
+  value,
+  label,
+  className,
+  placeholder,
+  numeric = false,
+  validate,
+  onSave,
+  onError,
+}: {
+  value: string
+  label: string
+  className: string
+  placeholder?: string
+  numeric?: boolean
+  validate?: (text: string) => string | null
+  /** resolves to false when the server refused the change */
+  onSave: (text: string) => Promise<boolean> | void
+  onError?: (message: string | null) => void
+}) {
+  const [text, setText] = useState(value)
+  const cancelled = useRef(false)
+
+  // follow changes coming from the server (other field saved, reload…)
+  useEffect(() => setText(value), [value])
+
+  async function commit() {
+    if (cancelled.current) {
+      cancelled.current = false
+      setText(value)
+      return
+    }
+    const t = text.trim()
+    if (t === value) {
+      setText(value)
+      return
+    }
+    const error = validate?.(t) ?? null
+    onError?.(error)
+    if (error) {
+      setText(value)
+      return
+    }
+    const ok = await onSave(t)
+    if (ok === false) setText(value)
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode={numeric ? 'numeric' : undefined}
+      className={`inline-input ${className}`}
+      aria-label={label}
+      title={`${label} — cliquez pour modifier`}
+      placeholder={placeholder}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onFocus={() => onError?.(null)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          cancelled.current = true
+          e.currentTarget.blur()
+        }
+      }}
+    />
+  )
+}
+
+function RegisteredRow({
   player,
   index,
   all,
+  showClub,
   started,
   busy,
-  onSave,
-  onCancel,
+  onEdit,
+  onSetClub,
+  onRemove,
 }: {
   player: PlayerInput
   index: number
   all: PlayerInput[]
+  showClub: boolean
   started: boolean
   busy: boolean
-  onSave: (newName: string, elo: number) => void
-  onCancel: () => void
+  onEdit: (name: string, newName: string, elo: number) => Promise<boolean>
+  onSetClub: (name: string, club: string) => void
+  onRemove: (name: string) => void
 }) {
-  const [name, setName] = useState(player.name)
-  const [elo, setElo] = useState(String(player.elo))
-  const eloValue = Number(elo)
-  const eloOk = elo.trim() !== '' && Number.isInteger(eloValue) && eloValue >= 0
-  const error = nameError(name, player.name, all) ?? (eloOk ? null : "L'Elo doit être un entier positif ou nul.")
-  const changed = name.trim() !== player.name || (eloOk && eloValue !== player.elo)
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (error || !changed) return
-    onSave(name.trim(), eloValue)
-  }
-
+  const [error, setError] = useState<string | null>(null)
   return (
-    <li className="editing">
-      <form
-        className="pl-edit"
-        onSubmit={submit}
-        onKeyDown={(e) => e.key === 'Escape' && onCancel()}
-      >
-        <span className="pl-num">{index + 1}</span>
-        <input
-          type="text"
-          className="input-sm pl-edit-name"
-          aria-label="Nom du joueur"
-          value={name}
-          autoFocus
-          onChange={(e) => setName(e.target.value)}
+    <li className={error ? 'has-error' : undefined}>
+      <span className="pl-num">{index + 1}</span>
+      <InlineField
+        className="pl-name-input"
+        label={`Nom de ${player.name}`}
+        value={player.name}
+        validate={(t) => nameError(t, player.name, all)}
+        onSave={(t) => onEdit(player.name, t, player.elo)}
+        onError={setError}
+      />
+      <InlineField
+        className="pl-elo-input"
+        label={`Elo de ${player.name}`}
+        numeric
+        value={String(player.elo)}
+        validate={(t) => (/^\d+$/.test(t) ? null : "L'Elo doit être un entier positif ou nul (0 si non classé).")}
+        onSave={(t) => onEdit(player.name, player.name, Number(t))}
+        onError={setError}
+      />
+      {showClub && (
+        <InlineField
+          className="pl-club-input"
+          label={`Club / équipe de ${player.name}`}
+          placeholder="Club / équipe"
+          value={player.club ?? ''}
+          onSave={(t) => onSetClub(player.name, t)}
         />
-        <input
-          type="number"
-          min={0}
-          step={1}
-          className="input-sm pl-edit-elo"
-          aria-label="Elo"
-          value={elo}
-          onChange={(e) => setElo(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="icon-button"
-          disabled={busy || !!error || !changed}
-          aria-label="Valider la modification"
-          title="Valider (Entrée)"
-        >
-          <Icon name="check" size={14} />
-        </button>
+      )}
+      {!started && (
         <button
           type="button"
-          className="icon-button"
-          onClick={onCancel}
-          aria-label="Annuler la modification"
-          title="Annuler (Échap)"
+          className="icon-button pl-remove"
+          onClick={() => onRemove(player.name)}
+          disabled={busy}
+          aria-label={`Retirer ${player.name}`}
+          title="Retirer ce joueur"
         >
           <Icon name="close" size={14} />
         </button>
-        {error ? (
-          <span className="pl-edit-msg error" role="alert">{error}</span>
-        ) : (
-          started &&
-          eloOk &&
-          eloValue !== player.elo && (
-            <span className="pl-edit-msg">
-              Les appariements déjà faits ne changent pas ; le nouvel Elo comptera pour les
-              rondes suivantes.
-            </span>
-          )
-        )}
-      </form>
+      )}
+      {error && (
+        <span className="pl-error" role="alert">
+          {error}
+        </span>
+      )}
     </li>
   )
 }
@@ -145,6 +195,7 @@ export function AddPlayers({
   pending,
   locked,
   showClub,
+  maxPlayers = null,
   busy = false,
   onToggleClub,
   onSetClub,
@@ -152,21 +203,26 @@ export function AddPlayers({
   onAdd,
   onRemove,
   onSubmit,
+  onImport,
+  onRemovePlayer,
 }: Props) {
   const [name, setName] = useState('')
   const [elo, setElo] = useState(1500)
   const [club, setClub] = useState('')
-  /** name of the registered player being edited (null = none) */
-  const [editing, setEditing] = useState<string | null>(null)
+  /** player list file being imported */
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const fileInput = useRef<HTMLInputElement>(null)
 
-  async function saveEdit(current: string, newName: string, newElo: number) {
-    if (await onEditPlayer(current, newName, newElo)) setEditing(null)
+  async function runImport(players: PlayerInput[], hasClub: boolean): Promise<string | null> {
+    const error = await onImport(players, hasClub)
+    if (!error) setImportFile(null)
+    return error
   }
 
   function add(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = name.trim()
-    if (!trimmed) return
+    if (!trimmed || full) return
     onAdd({ name: trimmed, elo, club: showClub && club.trim() ? club.trim() : null })
     setName('')
   }
@@ -179,6 +235,7 @@ export function AddPlayers({
   )
 
   const total = registered.length + pending.length
+  const full = maxPlayers !== null && total >= maxPlayers
 
   const registeredList =
     total === 0 ? (
@@ -188,42 +245,22 @@ export function AddPlayers({
       </EmptyState>
     ) : (
       <ol className={showClub ? 'player-list with-club' : 'player-list'}>
-        {registered.map((p, i) =>
-          editing === p.name ? (
-            <EditPlayerRow
-              key={`e-${p.name}`}
-              player={p}
-              index={i}
-              all={[...registered, ...pending]}
-              started={locked}
-              busy={busy}
-              onSave={(n, e) => saveEdit(p.name, n, e)}
-              onCancel={() => setEditing(null)}
-            />
-          ) : (
-            <li key={`r-${p.name}`}>
-              <span className="pl-num">{i + 1}</span>
-              <span className="pl-name">{p.name}</span>
-              <span className="pl-elo">{p.elo}</span>
-              {showClub && (
-                <ClubInput
-                  key={p.club ?? ''}
-                  value={p.club ?? ''}
-                  onSave={(c) => onSetClub(p.name, c)}
-                />
-              )}
-              <button
-                className="icon-button"
-                onClick={() => setEditing(p.name)}
-                disabled={busy}
-                aria-label={`Modifier le nom ou l'Elo de ${p.name}`}
-                title="Modifier le nom ou l'Elo"
-              >
-                <Icon name="edit" size={14} />
-              </button>
-            </li>
-          ),
-        )}
+        {registered.map((p, i) => (
+          // keyed by position: renaming a player must not remount the row
+          // (the focus would jump out of the next field)
+          <RegisteredRow
+            key={i}
+            player={p}
+            index={i}
+            all={[...registered, ...pending]}
+            showClub={showClub}
+            started={locked}
+            busy={busy}
+            onEdit={onEditPlayer}
+            onSetClub={onSetClub}
+            onRemove={onRemovePlayer}
+          />
+        ))}
         {pending.map((p, i) => (
           <li key={`p-${p.name}-${i}`} className="pending">
             <span className="pl-num">{registered.length + i + 1}</span>
@@ -272,8 +309,41 @@ export function AddPlayers({
           Joueurs
           <span className="count">{total}</span>
         </h2>
-        {clubToggle}
+        <div className="card-head-tools">
+          <button
+            type="button"
+            className="secondary sm"
+            onClick={() => fileInput.current?.click()}
+            disabled={busy}
+            title="Fichier CSV, Excel (XLSX) ou LibreOffice (ODS), par exemple l'export d'un Google Forms"
+          >
+            <Icon name="file" />
+            Importer une liste
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPTED_FILES}
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) setImportFile(f)
+              e.target.value = ''
+            }}
+          />
+          {clubToggle}
+        </div>
       </header>
+
+      {importFile && (
+        <ImportPlayers
+          file={importFile}
+          existingNames={[...registered, ...pending].map((p) => p.name)}
+          busy={busy}
+          onCancel={() => setImportFile(null)}
+          onImport={runImport}
+        />
+      )}
 
       <form className="player-form" onSubmit={add}>
         <label className="field grow">
@@ -300,11 +370,23 @@ export function AddPlayers({
           <span className="field-label">Elo</span>
           <input type="number" value={elo} onChange={(e) => setElo(Number(e.target.value))} />
         </label>
-        <button type="submit" className="secondary" disabled={!name.trim()}>
+        <button
+          type="submit"
+          className="secondary"
+          disabled={!name.trim() || full}
+          title={full ? `Un round-robin est limité à ${maxPlayers} joueurs` : undefined}
+        >
           <Icon name="plus" />
           Ajouter
         </button>
       </form>
+      {maxPlayers !== null && (
+        <p className={full ? 'hint limit-hint full' : 'hint limit-hint'}>
+          {full
+            ? `Limite atteinte : un round-robin compte ${maxPlayers} joueurs au plus. Au-delà, choisissez un système suisse.`
+            : `Round-robin : ${maxPlayers} joueurs au plus (${total} inscrit${total > 1 ? 's' : ''}).`}
+        </p>
+      )}
 
       {registeredList}
 

@@ -12,6 +12,7 @@ from dataclasses import asdict, fields
 from typing import Any
 
 from engine.common.models import GameResult, Pairing
+from engine.common.performance import performance
 from engine.common.round_system import RoundBasedSystem
 from engine.common.utils import ensure_player_fields
 from engine.config import TournamentConfig
@@ -27,6 +28,10 @@ SWISS_SYSTEMS = {
     "swissrandom2",
     "mixed",
 }
+
+# Round-robin: the results grid (one row and one column per player) stays
+# readable up to this size; above it, use a Swiss system.
+MAX_ROUND_ROBIN_PLAYERS = 24
 
 FILE_FORMAT = "swissengine-tournament"
 FILE_VERSION = 1
@@ -93,9 +98,15 @@ class Tournament:
         self._keep_order = False
 
     # ---------------------------------------------------------------- players
-    def add_players(self, players: list[dict]) -> None:
+    def add_players(self, players: list[dict], enforce_limit: bool = True) -> None:
         if self._started:
             raise RuntimeError("Cannot add players after the tournament has started")
+        if enforce_limit and self.is_round_robin and len(self.players) + len(players) > MAX_ROUND_ROBIN_PLAYERS:
+            raise ValueError(
+                f"Un round-robin est limité à {MAX_ROUND_ROBIN_PLAYERS} joueurs "
+                f"({len(self.players)} déjà inscrits, {len(players)} à ajouter). "
+                "Au-delà, choisissez un système suisse."
+            )
         new_names: set[str] = set()
         for player in players:
             ensure_player_fields(player)
@@ -118,6 +129,38 @@ class Tournament:
                     p.pop("Club", None)
                 return
         raise ValueError(f"Unknown player '{name}'")
+
+    def remove_player(self, name: str) -> None:
+        """Unregister a player (only before the first round is generated)."""
+        if self._started:
+            raise RuntimeError("Cannot remove players after the tournament has started")
+        for i, p in enumerate(self._players):
+            if p["Name"] == name:
+                del self._players[i]
+                return
+        raise ValueError(f"Joueur inconnu : « {name} »")
+
+    def update_settings(self, config: TournamentConfig, name: str | None = None) -> None:
+        """Replace the configuration (system, rounds, points…) before the start.
+
+        Nothing depends on the configuration until the first round is
+        generated (the pairing system is built at that moment), so the new
+        settings apply exactly as if the tournament had been created with them.
+        """
+        if self._started:
+            raise RuntimeError("Cannot change the settings after the tournament has started")
+        if name is not None:
+            name = name.strip()
+            if not name:
+                raise ValueError("Le nom du tournoi ne peut pas être vide")
+        if config.system.lower() == "roundrobin" and len(self.players) > MAX_ROUND_ROBIN_PLAYERS:
+            raise ValueError(
+                f"Un round-robin est limité à {MAX_ROUND_ROBIN_PLAYERS} joueurs "
+                f"({len(self.players)} inscrits). Retirez des joueurs ou choisissez un système suisse."
+            )
+        self.config = config
+        if name is not None:
+            self.name = name
 
     def add_player(self, name: str, elo: int = 0, **extra: Any) -> None:
         self.add_players([{"Name": name, "Elo": elo, **extra}])
@@ -152,6 +195,12 @@ class Tournament:
 
     # ----------------------------------------------------------------- rounds
     def generate_round(self) -> list[Pairing]:
+        if self.is_round_robin:
+            # the whole calendar is made at once; return the next round to fill
+            self.start_schedule()
+            if self.is_finished:
+                raise RuntimeError("Tournament is already finished")
+            return list(self._rounds[self.current_round - 1]["pairings"])
         self._start()
         assert self._system is not None
         round_number = self._system.current_round
@@ -185,14 +234,162 @@ class Tournament:
         if self._system is None:
             raise RuntimeError("No round has been generated yet")
         parsed = _parse_results(results)
+        if self.is_round_robin:
+            # all the results of the next round to fill (same contract as the Swiss systems)
+            if self.is_finished:
+                raise RuntimeError("No round is awaiting results")
+            rnd = self._rounds[self.current_round - 1]
+            tables = {p.table for p in rnd["pairings"] if not p.is_bye}
+            given = {r.table for r in parsed}
+            if given != tables or len(parsed) != len(tables):
+                raise ValueError(f"Expected one result for each of the tables {sorted(tables)}")
+            for r in parsed:
+                self._check_score(r.white_score, r.table)
+            rnd["results"] = {**(rnd["results"] or {}), **{r.table: float(r.white_score) for r in parsed}}
+            self._refresh_round_robin()
+            return
         self._system.enter_results(parsed)
         self._rounds[-1]["results"] = {r.table: float(r.white_score) for r in parsed}
+
+    # ------------------------------------------------------------ round-robin
+    @property
+    def is_round_robin(self) -> bool:
+        return self.config.system.lower() == "roundrobin"
+
+    def start_schedule(self) -> None:
+        """Round-robin: generate the whole calendar (results entered later, in any order).
+
+        Pairings and colors of a round-robin do not depend on the results, so
+        generating all the rounds now gives exactly the pairings and colors
+        of playing them one by one. Closes the registrations.
+        """
+        if not self.is_round_robin:
+            raise RuntimeError("Only a round-robin has a calendar")
+        self._start()
+        system = self._system
+        assert system is not None
+        while not system.is_finished:
+            round_number = system.current_round
+            pairings = system.generate_round()
+            system.skip_results()
+            self._rounds.append(
+                {
+                    "round": round_number,
+                    "win_value": self.config.win_value(round_number),
+                    "pairings": pairings,
+                    "results": {},
+                }
+            )
+        self._refresh_round_robin()
+
+    @staticmethod
+    def _check_score(score: float | None, table: int) -> None:
+        if score is not None and float(score) not in (0.0, 0.5, 1.0):
+            raise ValueError(f"Invalid white_score {score} at table {table}")
+
+    def set_result(self, round_number: int, table: int, white_score: float | None) -> None:
+        """Round-robin: enter, change or clear (None) the result of one game, any time."""
+        if not self.is_round_robin:
+            raise RuntimeError("Results are entered round by round in this system")
+        if not self._started or not self._rounds:
+            raise RuntimeError("Le calendrier n'a pas encore été généré")
+        if not 1 <= round_number <= len(self._rounds):
+            raise ValueError(f"La ronde {round_number} n'existe pas")
+        rnd = self._rounds[round_number - 1]
+        game = next((p for p in rnd["pairings"] if p.table == table), None)
+        if game is None or game.is_bye:
+            raise ValueError(f"Pas de partie à la table {table} de la ronde {round_number}")
+        self._check_score(white_score, table)
+        results = rnd["results"] if rnd["results"] is not None else {}
+        if white_score is None:
+            results.pop(table, None)
+        else:
+            results[table] = float(white_score)
+        rnd["results"] = results
+        self._refresh_round_robin()
+
+    def _refresh_round_robin(self) -> None:
+        """Scores and tiebreaks of a round-robin from every result entered so far."""
+        games = []
+        for rnd in self._rounds:
+            results = rnd["results"] or {}
+            win = rnd["win_value"]
+            for p in rnd["pairings"]:
+                if p.is_bye or p.table not in results:
+                    continue
+                s = results[p.table]
+                games.append((p.white_index, p.black_index, s * win, (1 - s) * win))
+        self._system.rebuild_results(games)  # type: ignore[union-attr]
+
+    @staticmethod
+    def _round_complete(rnd: dict) -> bool:
+        results = rnd["results"]
+        if results is None:
+            return False
+        return all(p.table in results for p in rnd["pairings"] if not p.is_bye)
+
+    @property
+    def games_total(self) -> int:
+        return sum(1 for rnd in self._rounds for p in rnd["pairings"] if not p.is_bye)
+
+    @property
+    def games_played(self) -> int:
+        return sum(
+            1
+            for rnd in self._rounds
+            for p in rnd["pairings"]
+            if not p.is_bye and rnd["results"] is not None and p.table in rnd["results"]
+        )
+
+    def _calendar(self) -> bool:
+        """Round-robin whose calendar exists (results in any order)."""
+        return self.is_round_robin and self._started
 
     def get_standings(self) -> list[dict]:
         if self._system is None:
             # Not started: show registration order without bye
             return [dict(p) for p in self._players]
-        return self._system.get_standings()
+        standings = self._system.get_standings()
+        if not any(int(p.get("Elo", 0)) > 0 for p in self.players):
+            return standings  # nobody is rated: no performance
+        return self._with_performance(standings)
+
+    def _with_performance(self, standings: list[dict]) -> list[dict]:
+        """Add the performance ("Perf", last tiebreak) to the standings.
+
+        Copies are returned: the engine's players are left untouched (the
+        pairings never depend on the performance). Ties left by the system's
+        own criteria are broken by the performance, the system's order being
+        kept otherwise (stable sort).
+        """
+        elo = {p["Name"]: float(p.get("Elo", 0)) for p in self._players}
+        games: dict[str, list[tuple[float, float]]] = {p["Name"]: [] for p in standings}
+        for rnd in self._rounds:
+            results = rnd["results"] or {}
+            for p in rnd["pairings"]:
+                if p.is_bye or p.table not in results:
+                    continue
+                s = float(results[p.table])  # game result, not weighted by the round
+                if p.white_name in games:
+                    games[p.white_name].append((elo.get(p.black_name, 0.0), s))
+                if p.black_name in games:
+                    games[p.black_name].append((elo.get(p.white_name, 0.0), 1.0 - s))
+        keys = list(standings[0].get("TB", {}).keys()) if standings else []
+        out, sort_value = [], {}
+        for p in standings:
+            shown, internal = performance(games[p["Name"]])
+            q = dict(p)
+            q["TB"] = {**p.get("TB", {}), "Perf": shown}
+            sort_value[p["Name"]] = internal
+            out.append(q)
+        out.sort(
+            key=lambda q: (
+                -float(q.get("pts", 0.0)),
+                *(-float(q["TB"][k]) for k in keys),
+                -sort_value[q["Name"]],
+            )
+        )
+        return out
 
     # ------------------------------------------------------------- properties
     @property
@@ -207,6 +404,12 @@ class Tournament:
     def current_round(self) -> int:
         if self._system is None:
             return 1
+        if self._calendar():
+            # first round with a missing result
+            for k, rnd in enumerate(self._rounds, start=1):
+                if not self._round_complete(rnd):
+                    return k
+            return len(self._rounds) + 1
         return self._system.current_round
 
     @property
@@ -216,7 +419,7 @@ class Tournament:
         if self.config.system.lower() == "roundrobin":
             # Everyone meets everyone: n - 1 rounds (n rounded up to even, bye included)
             n = len(self.players)
-            full = max(n + n % 2 - 1, 0)
+            full = max(n + n % 2 - 1, 0) * (2 if self.config.double_round_robin else 1)
             return min(self.config.rounds, full) if self.config.rounds > 0 else full
         return self.config.rounds
 
@@ -249,6 +452,25 @@ class Tournament:
         """
         if self._system is None or self.completed_rounds == 0:
             raise RuntimeError("Aucune ronde n'a encore été jouée")
+        if self._calendar():
+            # keep the rounds up to the last one with a result; they must be complete
+            last = max(k for k, rnd in enumerate(self._rounds, start=1) if rnd["results"])
+            missing = [k for k, rnd in enumerate(self._rounds[:last], start=1) if not self._round_complete(rnd)]
+            if missing:
+                listed = ", ".join(str(k) for k in missing)
+                raise RuntimeError(
+                    f"Impossible de terminer maintenant : la ronde {last} a déjà des résultats, mais "
+                    f"{'la ronde' if len(missing) == 1 else 'les rondes'} {listed} "
+                    f"{'est incomplète' if len(missing) == 1 else 'sont incomplètes'}. Complétez-les, "
+                    "ou effacez les résultats des rondes à retirer du calendrier."
+                )
+            if last == len(self._rounds) and self.is_finished:
+                raise RuntimeError("Le tournoi est déjà terminé")
+            del self._rounds[last:]
+            self.config.rounds = last
+            self._system.total_rounds = last
+            self._refresh_round_robin()
+            return
         if self.awaiting_results:
             raise RuntimeError(
                 "Une ronde attend ses résultats : saisissez-les ou annulez ses appariements d'abord"
@@ -262,14 +484,20 @@ class Tournament:
 
     @property
     def completed_rounds(self) -> int:
-        return sum(1 for r in self._rounds if r["results"] is not None)
+        return sum(1 for r in self._rounds if self._round_complete(r))
 
     @property
     def is_finished(self) -> bool:
+        if self._calendar():
+            return len(self._rounds) == self._system.total_rounds and all(  # type: ignore[union-attr]
+                self._round_complete(r) for r in self._rounds
+            )
         return self._system is not None and self._system.is_finished
 
     @property
     def awaiting_results(self) -> bool:
+        if self._calendar():
+            return False  # no pending round: results are entered in any order
         return self._system is not None and self._system.awaiting_results
 
     def status(self) -> dict:
@@ -285,12 +513,20 @@ class Tournament:
             "player_count": len(self.players),
             "show_club": self.show_club,
             "max_safe_rounds": self.max_safe_rounds,
+            # round-robin calendar: progress game by game (None otherwise)
+            "games_total": self.games_total if self._calendar() else None,
+            "games_played": self.games_played if self._calendar() else None,
             "config": asdict(self.config),
         }
 
     def rounds(self) -> list[dict]:
         """History of the rounds, ready to display (points/Elo before each round)."""
         out: list[dict] = []
+        calendar = self._calendar()
+        # round-robin calendar: the whole calendar is made at the start, so the
+        # points "before the round" are recomputed from the results entered
+        # in the previous rounds (0 for the exempt player, as in the scores)
+        running: dict[str, float] = {}
         for rnd in self._rounds:
             results = rnd["results"]
             pairings = []
@@ -298,6 +534,10 @@ class Tournament:
                 score = None
                 if results is not None and not p.is_bye:
                     score = results.get(p.table)
+                white_pts, black_pts = p.white_pts, p.black_pts
+                if calendar:
+                    white_pts = running.get(p.white_name, 0.0)
+                    black_pts = 0.0 if p.is_bye else running.get(p.black_name, 0.0)
                 pairings.append(
                     {
                         "table": p.table,
@@ -306,16 +546,23 @@ class Tournament:
                         "is_bye": p.is_bye,
                         "white_elo": p.white_elo,
                         "black_elo": p.black_elo,
-                        "white_pts": p.white_pts,
-                        "black_pts": p.black_pts,
+                        "white_pts": white_pts,
+                        "black_pts": black_pts,
                         "white_score": score,
                     }
                 )
+            if calendar:
+                win = rnd["win_value"]
+                for p in rnd["pairings"]:
+                    if not p.is_bye and results and p.table in results:
+                        s = results[p.table]
+                        running[p.white_name] = running.get(p.white_name, 0.0) + s * win
+                        running[p.black_name] = running.get(p.black_name, 0.0) + (1 - s) * win
             out.append(
                 {
                     "round": rnd["round"],
                     "win_value": rnd["win_value"],
-                    "completed": results is not None,
+                    "completed": self._round_complete(rnd),
                     "pairings": pairings,
                 }
             )
@@ -376,7 +623,8 @@ class Tournament:
         players = data.get("players", [])
         tournament.show_club = bool(dict(data.get("options", {})).get("show_club", False))
         tournament.add_players(
-            [
+            enforce_limit=False,  # files saved before the round-robin limit still open
+            players=[
                 {
                     "Name": str(p["name"]),
                     "Elo": int(p.get("elo", 0) or 0),
@@ -414,6 +662,19 @@ class Tournament:
 
             pairings = tournament._apply_round(pairs)
 
+            if tournament.is_round_robin:
+                # calendar: results may be missing anywhere
+                tournament._system.skip_results()  # type: ignore[union-attr]
+                results: dict[int, float] = {}
+                for pg, sv in zip(pairings, saved):
+                    score = sv.get("white_score")
+                    if pg.is_bye or score is None:
+                        continue
+                    cls._check_score(score, pg.table)
+                    results[pg.table] = float(score)
+                tournament._rounds[-1]["results"] = results
+                continue
+
             games = [(pg, sv) for pg, sv in zip(pairings, saved) if not pg.is_bye]
             scores = [sv.get("white_score") for _, sv in games]
             if all(s is not None for s in scores):
@@ -422,6 +683,11 @@ class Tournament:
                 )
             elif position != len(rounds) - 1:
                 raise ValueError(f"Round {round_number} has missing results")
+
+        if tournament.is_round_robin and rounds:
+            # rounds not saved yet (files from before the calendar, truncation)
+            # are generated now; the scores are rebuilt from the results
+            tournament.start_schedule()
 
         return tournament
 
@@ -519,6 +785,61 @@ class Tournament:
                 if p.black_name == target:
                     p.black_elo = elo
 
+    # --------------------------------------------------------- results grid
+    def results_grid(self) -> dict:
+        """Round-robin results table (one row and one column per player).
+
+        Rows and columns follow the current ranking. Cell (row, col) lists
+        the games of the row player against the column player, in round
+        order (two games in a double round-robin): color of the row player
+        and his result (1, 0.5, 0), None while the game has no result.
+        Results are game results, not weighted by the points of the round.
+        """
+        if not self.is_round_robin:
+            raise RuntimeError("The results grid is for round-robin tournaments")
+        standings = self.get_standings()
+        names = [p["Name"] for p in standings]
+        rank_of = {n: i for i, n in enumerate(names)}
+        games: dict[tuple[str, str], list[dict]] = {}
+        played = {n: 0 for n in names}
+        for rnd in self._rounds:
+            results = rnd["results"] or {}
+            for p in rnd["pairings"]:
+                if p.is_bye:
+                    continue
+                s = results.get(p.table)
+                games.setdefault((p.white_name, p.black_name), []).append(
+                    {"round": rnd["round"], "color": "W", "score": s}
+                )
+                games.setdefault((p.black_name, p.white_name), []).append(
+                    {"round": rnd["round"], "color": "B", "score": None if s is None else 1 - s}
+                )
+                if s is not None:
+                    played[p.white_name] += 1
+                    played[p.black_name] += 1
+        rows = []
+        for p in standings:
+            me = p["Name"]
+            rows.append(
+                {
+                    "rank": rank_of[me] + 1,
+                    "name": me,
+                    "club": p.get("Club"),
+                    "elo": int(p.get("Elo", 0)),
+                    "pts": float(p.get("pts", 0.0)),
+                    "tiebreaks": {k: None if v is None else float(v) for k, v in p.get("TB", {}).items()},
+                    "played": played[me],
+                    "cells": [None if other == me else games.get((me, other), []) for other in names],
+                }
+            )
+        return {
+            "legs": 2 if self.config.double_round_robin else 1,
+            "tiebreak_keys": list(standings[0].get("TB", {}).keys()) if standings else [],
+            "games_total": self.games_total,
+            "games_played": self.games_played,
+            "rows": rows,
+        }
+
     # ------------------------------------------------------------ crosstable
     def crosstable(self, after_round: int | None = None) -> dict:
         """American grid ("grille américaine") after a given completed round.
@@ -602,7 +923,7 @@ class Tournament:
                 "club": p.get("Club"),
                 "elo": int(p.get("Elo", 0)),
                 "pts": float(p.get("pts", 0.0)),
-                "tiebreaks": {key: float(v) for key, v in p.get("TB", {}).items()},
+                "tiebreaks": {key: None if v is None else float(v) for key, v in p.get("TB", {}).items()},
                 "cells": cells[p["Name"]],
             }
             for p in standings

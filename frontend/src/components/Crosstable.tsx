@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import * as api from '../api'
 import type { Crosstable as CrosstableData, CrosstableCell } from '../types'
-import { TIEBREAK_LABELS } from '../types'
+import { TIEBREAK_HELP, TIEBREAK_LABELS } from '../types'
 import { fmtPts } from '../format'
 import { Banner, EmptyState, Spinner } from './Feedback'
 import { Icon } from './Icon'
@@ -181,7 +181,9 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
               ))}
               <th className="pts-col">Pts</th>
               {data.tiebreak_keys.map((k) => (
-                <th key={k}>{TIEBREAK_LABELS[k] ?? k}</th>
+                <th key={k} title={TIEBREAK_HELP[k]}>
+                  {TIEBREAK_LABELS[k] ?? k}
+                </th>
               ))}
             </tr>
           </thead>
@@ -225,7 +227,7 @@ export function Crosstable({ tournamentId, completedRounds, showClub, version }:
       <p className="hint table-note">
         <b className="sym-win">+</b> gain · <b>=</b> nulle · <b className="sym-loss">−</b> perte ·
         numéro = place de l'adversaire · B = Blancs, N = Noirs · EXE = exempt · Tr. = Buchholz
-        tronqué.
+        tronqué{data.tiebreak_keys.includes('Perf') && ' · Perf. = performance Elo'}.
       </p>
     </div>
   )

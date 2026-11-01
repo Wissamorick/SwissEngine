@@ -11,6 +11,8 @@ export interface TournamentConfigInput {
   seeding: boolean
   /** round 1: color of the higher-ranked player on table 1 (then alternating) */
   first_board_color: 'white' | 'random' | 'black'
+  /** round-robin only: every game twice, colors reversed (all first-leg rounds first) */
+  double_round_robin: boolean
   show_club: boolean
 }
 
@@ -43,6 +45,9 @@ export interface TournamentStatus {
   save_dir: string | null
   last_saved: string | null
   save_error: string | null
+  /** round-robin calendar: games entered / games in the calendar (null otherwise) */
+  games_total: number | null
+  games_played: number | null
 }
 
 export interface Pairing {
@@ -73,7 +78,7 @@ export interface StandingEntry {
   elo: number
   pts: number
   color_diff: number
-  tiebreaks: Record<string, number>
+  tiebreaks: Record<string, number | null>
 }
 
 export interface CrosstableCell {
@@ -92,7 +97,7 @@ export interface CrosstableRow {
   club: string | null
   elo: number
   pts: number
-  tiebreaks: Record<string, number>
+  tiebreaks: Record<string, number | null>
   cells: CrosstableCell[]
 }
 
@@ -100,6 +105,35 @@ export interface Crosstable {
   after_round: number
   tiebreak_keys: string[]
   rows: CrosstableRow[]
+}
+
+/** Round-robin results grid (double-entry table), one cell per opponent */
+export interface GridGame {
+  round: number
+  /** color of the row player */
+  color: 'W' | 'B'
+  /** row player's result, null until entered */
+  score: number | null
+}
+
+export interface GridRow {
+  rank: number
+  name: string
+  club: string | null
+  elo: number
+  pts: number
+  tiebreaks: Record<string, number | null>
+  played: number
+  /** same order as the rows; null on the diagonal */
+  cells: (GridGame[] | null)[]
+}
+
+export interface ResultsGrid {
+  legs: number
+  tiebreak_keys: string[]
+  games_total: number
+  games_played: number
+  rows: GridRow[]
 }
 
 export interface TournamentState {
@@ -131,6 +165,9 @@ export interface DirListing {
   default_dir: string
 }
 
+/** same limit as the server (larger grids would not fit on a page) */
+export const MAX_ROUND_ROBIN_PLAYERS = 24
+
 export const SWISS_SYSTEMS = [
   'dutch',
   'burstein',
@@ -158,4 +195,14 @@ export const TIEBREAK_LABELS: Record<string, string> = {
   Bu1: 'Tr.',
   Bu: 'Buchholz',
   SB: 'S.-B.',
+  Perf: 'Perf.',
+}
+
+/** tooltips of the tiebreak columns */
+export const TIEBREAK_HELP: Record<string, string> = {
+  Bu1: 'Buchholz tronqué : somme des points des adversaires, sans le plus faible',
+  Bu: 'Buchholz : somme des points des adversaires',
+  SB: 'Sonneborn-Berger : points des adversaires battus + moitié de ceux des nulles',
+  Perf:
+    "Performance : l'Elo qui aurait donné exactement ce score contre ces adversaires classés (vide à 100 %, à 0 % ou sans adversaire classé)",
 }

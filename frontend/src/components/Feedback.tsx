@@ -14,7 +14,7 @@ interface ModalProps {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   /** role="alertdialog" for confirmations */
   alert?: boolean
 }

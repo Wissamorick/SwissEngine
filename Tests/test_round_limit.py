@@ -19,12 +19,12 @@ def make(system: str, n: int, rounds: int) -> Tournament:
 
 
 def finish_round(t: Tournament, rng: random.Random) -> None:
-    pairings = t._rounds[-1]["pairings"]
+    pairings = t._rounds[t.current_round - 1]["pairings"]
     t.enter_results([GameResult(p.table, rng.choice([0.0, 0.5, 1.0])) for p in pairings if not p.is_bye])
 
 
 def assert_full_round(test: unittest.TestCase, t: Tournament) -> None:
-    names = [x for p in t._rounds[-1]["pairings"] for x in (p.white_name, p.black_name)]
+    names = [x for p in t._rounds[t.current_round - 1]["pairings"] for x in (p.white_name, p.black_name)]
     test.assertEqual(sorted(names), sorted(p["Name"] for p in t._players))
 
 

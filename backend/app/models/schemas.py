@@ -18,6 +18,8 @@ class CreateTournamentRequest(BaseModel):
     seeding: bool = True
     # Round 1: color of the higher-ranked player on table 1, then alternating
     first_board_color: Literal["white", "random", "black"] = "random"
+    # Round-robin only: every game played twice, colors reversed (all first-leg rounds first)
+    double_round_robin: bool = False
     show_club: bool = False
 
 
@@ -66,7 +68,7 @@ class StandingEntry(BaseModel):
     elo: int
     pts: float
     color_diff: int
-    tiebreaks: dict[str, float]
+    tiebreaks: dict[str, float | None]  # None: no value (e.g. Perf at 100 %)
 
 
 class CrosstableCell(BaseModel):
@@ -85,7 +87,7 @@ class CrosstableRow(BaseModel):
     club: str | None = None
     elo: int
     pts: float
-    tiebreaks: dict[str, float]
+    tiebreaks: dict[str, float | None]  # None: no value (e.g. Perf at 100 %)
     cells: list[CrosstableCell]
 
 
@@ -109,6 +111,9 @@ class TournamentStatus(BaseModel):
     show_club: bool = False
     # Above this number of rounds a full pairing may not exist (None: round-robin)
     max_safe_rounds: int | None = None
+    # round-robin calendar: games with a result / all games (None otherwise)
+    games_total: int | None = None
+    games_played: int | None = None
     config: dict[str, Any]
     # Folder where the tournament is automatically saved (None = not saved yet)
     save_dir: str | None = None
@@ -147,6 +152,43 @@ class ImportRequest(BaseModel):
 
 class OptionsRequest(BaseModel):
     show_club: bool
+
+
+class GameResultRequest(BaseModel):
+    """Round-robin: result of one game, entered in any order; None clears it."""
+
+    round: int = Field(ge=1)
+    table: int = Field(ge=1)
+    white_score: float | None = None
+
+
+class GridGame(BaseModel):
+    round: int
+    color: str  # "W" / "B" for the row player
+    score: float | None  # row player's result (1, 0.5, 0), None = not played yet
+
+
+class GridRow(BaseModel):
+    rank: int
+    name: str
+    club: str | None = None
+    elo: int
+    pts: float
+    tiebreaks: dict[str, float | None]  # None: no value (e.g. Perf at 100 %)
+    played: int
+    cells: list[list[GridGame] | None]  # one per column (same order as rows), None on the diagonal
+
+
+class ResultsGrid(BaseModel):
+    legs: int
+    tiebreak_keys: list[str]
+    games_total: int
+    games_played: int
+    rows: list[GridRow]
+
+
+class PlayerRemoveRequest(BaseModel):
+    name: str = Field(min_length=1)
 
 
 class PlayerClubRequest(BaseModel):

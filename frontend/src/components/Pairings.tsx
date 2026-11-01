@@ -8,6 +8,8 @@ interface Props {
   results?: Record<number, number>
   editable: boolean
   onSetResult?: (table: number, whiteScore: number) => void
+  /** when given, clicking the selected result again clears it */
+  onClearResult?: (table: number) => void
   onSubmit?: (results: ResultInput[]) => void
   onPrint?: () => void
   onCancelRound?: () => void
@@ -28,10 +30,12 @@ function ResultPicker({
   table,
   value,
   onChange,
+  onClear,
 }: {
   table: number
   value: number | undefined
   onChange: (v: number) => void
+  onClear?: () => void
 }) {
   return (
     <div className="seg" role="radiogroup" aria-label={`Résultat table ${table}`}>
@@ -43,7 +47,8 @@ function ResultPicker({
           aria-checked={value === o.value}
           aria-label={`Table ${table} : ${o.name}`}
           className="seg-btn"
-          onClick={() => onChange(o.value)}
+          title={onClear && value === o.value ? 'Cliquer pour effacer ce résultat' : undefined}
+          onClick={() => (onClear && value === o.value ? onClear() : onChange(o.value))}
         >
           {o.label}
         </button>
@@ -66,6 +71,7 @@ export function Pairings({
   results = {},
   editable,
   onSetResult,
+  onClearResult,
   onSubmit,
   onPrint,
   onCancelRound,
@@ -131,6 +137,7 @@ export function Pairings({
                         table={p.table}
                         value={value}
                         onChange={(v) => onSetResult?.(p.table, v)}
+                        onClear={onClearResult ? () => onClearResult(p.table) : undefined}
                       />
                     ) : (
                       <span className="result">{resultLabel(p.white_score)}</span>

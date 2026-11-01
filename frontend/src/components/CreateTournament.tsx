@@ -6,6 +6,10 @@ import { Icon } from './Icon'
 interface Props {
   disabled: boolean
   onCreate: (config: TournamentConfigInput) => void
+  /** edit mode: current settings of a tournament that has not started yet */
+  initial?: TournamentConfigInput
+  /** edit mode: close without saving */
+  onCancel?: () => void
   /** open the FAQ at a given section */
   onHelp?: (anchor: string) => void
 }
@@ -24,18 +28,23 @@ const FIRST_BOARD_OPTIONS: { value: TournamentConfigInput['first_board_color']; 
   { value: 'black', label: 'Noirs' },
 ]
 
-export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
-  const [name, setName] = useState('')
-  const [system, setSystem] = useState('dutch')
-  const [rounds, setRounds] = useState(5)
-  const [pointsText, setPointsText] = useState('')
-  const [beta, setBeta] = useState(2)
-  const [byeValue, setByeValue] = useState(0.5)
-  const [seeding, setSeeding] = useState(true)
-  const [firstBoard, setFirstBoard] = useState<TournamentConfigInput['first_board_color']>('random')
-  const [showClub, setShowClub] = useState(false)
+export function CreateTournament({ disabled, onCreate, onHelp, initial, onCancel }: Props) {
+  const editing = initial !== undefined
+  const [name, setName] = useState(initial?.name ?? '')
+  const [system, setSystem] = useState(initial?.system ?? 'dutch')
+  // round-robin "all rounds" is stored as 0: keep a sensible number for the field
+  const [rounds, setRounds] = useState(initial && initial.rounds > 0 ? initial.rounds : 5)
+  const [pointsText, setPointsText] = useState(initial?.points.join(',') ?? '')
+  const [beta, setBeta] = useState(initial?.beta ?? 2)
+  const [byeValue, setByeValue] = useState(initial?.bye_value ?? 0.5)
+  const [seeding, setSeeding] = useState(initial?.seeding ?? true)
+  const [firstBoard, setFirstBoard] = useState<TournamentConfigInput['first_board_color']>(
+    initial?.first_board_color ?? 'random',
+  )
+  const [showClub, setShowClub] = useState(initial?.show_club ?? false)
   // Round-robin: as many rounds as needed for everyone to meet everyone
-  const [rrAllRounds, setRrAllRounds] = useState(true)
+  // Round-robin: every game twice ("aller-retour"), colors reversed
+  const [doubleRR, setDoubleRR] = useState(initial?.double_round_robin ?? false)
 
   const isRoundRobin = system === 'roundrobin'
   // Beta (colors) and seeding only matter for the Swiss-style systems
@@ -52,21 +61,25 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
     onCreate({
       name: name.trim() || 'Tournoi',
       system,
-      rounds: isRoundRobin && rrAllRounds ? 0 : rounds,
-      points,
+      // round-robin: always the complete schedule (0 = automatic, ×2 for aller-retour)
+      rounds: isRoundRobin ? 0 : rounds,
+      points: isRoundRobin ? [] : points,
       beta,
-      bye_value: byeValue,
+      bye_value: isRoundRobin ? 0 : byeValue,
       seeding,
       first_board_color: firstBoard,
+      double_round_robin: isRoundRobin && doubleRR,
       show_club: showClub,
     })
   }
 
   return (
-    <form className="card card-form" onSubmit={submit}>
-      <header className="card-head">
-        <h2>Nouveau tournoi</h2>
-      </header>
+    <form className={editing ? 'settings-form' : 'card card-form'} onSubmit={submit}>
+      {!editing && (
+        <header className="card-head">
+          <h2>Nouveau tournoi</h2>
+        </header>
+      )}
 
       <label className="field">
         <span className="field-label">Nom du tournoi</span>
@@ -97,7 +110,7 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
           </select>
         </label>
 
-        {(!isRoundRobin || !rrAllRounds) && (
+        {!isRoundRobin && (
           <label className="field field-rounds">
             <span className="field-label">Rondes</span>
             <input
@@ -111,14 +124,23 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
       </div>
 
       {isRoundRobin && (
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={rrAllRounds}
-            onChange={(e) => setRrAllRounds(e.target.checked)}
-          />
-          Toutes les rondes (chaque joueur rencontre tous les autres)
-        </label>
+        <>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={doubleRR}
+              onChange={(e) => setDoubleRR(e.target.checked)}
+            />
+            Aller-retour
+          </label>
+          <p className="field-help rr-help">
+            {doubleRR
+              ? 'Chaque rencontre est jouée deux fois, couleurs inversées : toutes les rondes aller, puis toutes les rondes retour.'
+              : 'Chaque joueur rencontre tous les autres une fois.'}{' '}
+            Tout le calendrier est créé d'un coup ; les résultats se saisissent dans n'importe quel
+            ordre. 24 joueurs au plus ; avec un nombre impair, le joueur exempt marque 0 point.
+          </p>
+        </>
       )}
 
       <label className="checkbox">
@@ -126,7 +148,7 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
         Afficher club / équipe
       </label>
 
-      <details className="advanced">
+      <details className="advanced" open={editing || undefined}>
         <summary>
           <Icon name="chevron-right" className="summary-chevron" />
           Paramètres avancés
@@ -140,55 +162,61 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
             </p>
           )}
 
-          <label className="field">
-            <span className="field-label">Points par ronde</span>
-            <input
-              type="text"
-              value={pointsText}
-              placeholder="1,1,1,1,1"
-              onChange={(e) => setPointsText(e.target.value)}
-            />
-            <span className="field-help">ex. 3,2,1 — vide = 1 point par victoire à chaque ronde</span>
-          </label>
+          {!isRoundRobin && (
+            <label className="field">
+              <span className="field-label">Points par ronde</span>
+              <input
+                type="text"
+                value={pointsText}
+                placeholder="1,1,1,1,1"
+                onChange={(e) => setPointsText(e.target.value)}
+              />
+              <span className="field-help">ex. 3,2,1 — vide = 1 point par victoire à chaque ronde</span>
+            </label>
+          )}
 
-          <div className="field-row">
-            <div className="field grow">
-              <span className="field-label" id="bye-label">
-                Valeur du bye
-              </span>
-              <div className="seg seg-field" role="radiogroup" aria-labelledby="bye-label">
-                {BYE_OPTIONS.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={byeValue === o.value}
-                    className="seg-btn"
-                    title={o.help}
-                    onClick={() => setByeValue(o.value)}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-              <span className="field-help">
-                {BYE_OPTIONS.find((o) => o.value === byeValue)?.help ?? "fraction d'une victoire"}
-              </span>
+          {(!isRoundRobin || usesSwissOptions) && (
+            <div className="field-row">
+              {!isRoundRobin && (
+                <div className="field grow">
+                  <span className="field-label" id="bye-label">
+                    Valeur du bye
+                  </span>
+                  <div className="seg seg-field" role="radiogroup" aria-labelledby="bye-label">
+                    {BYE_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={byeValue === o.value}
+                        className="seg-btn"
+                        title={o.help}
+                        onClick={() => setByeValue(o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="field-help">
+                    {BYE_OPTIONS.find((o) => o.value === byeValue)?.help ?? "fraction d'une victoire"}
+                  </span>
+                </div>
+              )}
+
+              {usesSwissOptions && (
+                <label className="field grow">
+                  <span className="field-label">Beta</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={beta}
+                    onChange={(e) => setBeta(Number(e.target.value))}
+                  />
+                  <span className="field-help">contrainte sur les couleurs</span>
+                </label>
+              )}
             </div>
-
-            {usesSwissOptions && (
-              <label className="field grow">
-                <span className="field-label">Beta</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={beta}
-                  onChange={(e) => setBeta(Number(e.target.value))}
-                />
-                <span className="field-help">contrainte sur les couleurs</span>
-              </label>
-            )}
-          </div>
+          )}
 
           <div className="field">
             <span className="field-label" id="first-board-label">
@@ -227,8 +255,13 @@ export function CreateTournament({ disabled, onCreate, onHelp }: Props) {
       </details>
 
       <div className="form-foot">
+        {editing && onCancel && (
+          <button type="button" className="secondary" onClick={onCancel}>
+            Annuler
+          </button>
+        )}
         <button type="submit" disabled={disabled}>
-          Créer le tournoi
+          {editing ? 'Enregistrer les paramètres' : 'Créer le tournoi'}
         </button>
       </div>
     </form>
